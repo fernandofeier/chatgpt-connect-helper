@@ -10,9 +10,19 @@ const Login = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Check initial session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/");
+      }
+    };
+    
+    checkSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
+      async (event) => {
+        if (event === 'SIGNED_IN') {
           navigate("/");
         }
         if (event === 'SIGNED_OUT') {
@@ -21,24 +31,10 @@ const Login = () => {
       }
     );
 
-    // Set up error handling for auth state
-    const {
-      data: { subscription: errorSubscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'USER_DELETED' || event === 'TOKEN_REFRESHED') {
-        toast({
-          title: "Authentication Error",
-          description: "Invalid login credentials. Please try again.",
-          variant: "destructive",
-        });
-      }
-    });
-
     return () => {
       subscription.unsubscribe();
-      errorSubscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
