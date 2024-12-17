@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { AuthError } from "@supabase/supabase-js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ const Login = () => {
         if (event === 'SIGNED_IN' && session) {
           navigate("/");
         }
-        if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT') {
           navigate("/login");
         }
       }
@@ -23,6 +24,14 @@ const Login = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const handleError = (error: AuthError) => {
+    toast({
+      title: "Error",
+      description: error.message,
+      variant: "destructive",
+    });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -44,13 +53,7 @@ const Login = () => {
             },
           }}
           providers={[]}
-          onError={(error) => {
-            toast({
-              title: "Error",
-              description: error.message,
-              variant: "destructive",
-            });
-          }}
+          onError={handleError}
         />
       </div>
     </div>
