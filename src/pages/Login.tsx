@@ -12,7 +12,7 @@ const Login = () => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           navigate("/");
         }
@@ -24,14 +24,6 @@ const Login = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
-
-  const handleError = (error: AuthError) => {
-    toast({
-      title: "Error",
-      description: error.message,
-      variant: "destructive",
-    });
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -53,7 +45,6 @@ const Login = () => {
             },
           }}
           providers={[]}
-          onError={handleError}
         />
       </div>
     </div>
