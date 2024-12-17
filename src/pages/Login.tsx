@@ -25,6 +25,14 @@ const Login = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const handleAuthError = (error: AuthError) => {
+    toast({
+      title: "Authentication Error",
+      description: error.message,
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="w-full max-w-md p-8">
@@ -45,6 +53,7 @@ const Login = () => {
             },
           }}
           providers={[]}
+          onError={handleAuthError}
         />
       </div>
     </div>
