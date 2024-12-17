@@ -18,18 +18,26 @@ const Login = () => {
         if (event === 'SIGNED_OUT') {
           navigate("/login");
         }
-        // Handle auth errors through the event
-        if (event === 'USER_ERROR') {
-          toast({
-            title: "Authentication Error",
-            description: "Invalid login credentials. Please try again.",
-            variant: "destructive",
-          });
-        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    // Set up error handling for auth state
+    const {
+      data: { subscription: errorSubscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'USER_DELETED' || event === 'TOKEN_REFRESHED') {
+        toast({
+          title: "Authentication Error",
+          description: "Invalid login credentials. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      errorSubscription.unsubscribe();
+    };
   }, [navigate, toast]);
 
   return (
