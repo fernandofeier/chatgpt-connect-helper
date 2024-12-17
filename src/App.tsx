@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,35 +52,37 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 // Wrap the App component in a function to ensure hooks are used in a component context
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route
-              path="/*"
-              element={
-                <ProtectedRoute>
-                  <SidebarProvider>
-                    <div className="flex min-h-screen w-full">
-                      <AppSidebar />
-                      <main className="flex-1">
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/settings" element={<Settings />} />
-                        </Routes>
-                      </main>
-                    </div>
-                  </SidebarProvider>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <SidebarProvider>
+                      <div className="flex min-h-screen w-full">
+                        <AppSidebar />
+                        <main className="flex-1">
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/settings" element={<Settings />} />
+                          </Routes>
+                        </main>
+                      </div>
+                    </SidebarProvider>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 }
 
