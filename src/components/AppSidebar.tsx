@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Settings, MessageSquare, Plus, LogOut } from "lucide-react";
+import { Settings, MessageSquare, Plus, LogOut, Trash2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Conversation {
   id: string;
@@ -28,25 +39,25 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const fetchConversations = async () => {
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar conversas",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setConversations(data || []);
+  };
+
   useEffect(() => {
-    const fetchConversations = async () => {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        toast({
-          title: "Erro",
-          description: "Falha ao carregar conversas",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setConversations(data || []);
-    };
-
     fetchConversations();
   }, [toast]);
 
@@ -57,6 +68,30 @@ export function AppSidebar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/login");
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    const { error } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao deletar conversa",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Sucesso",
+      description: "Conversa deletada com sucesso",
+    });
+
+    await fetchConversations();
+    navigate("/");
   };
 
   return (
@@ -72,22 +107,51 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Conversas Recentes</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-foreground">Conversas Recentes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {conversations.map((conversation) => (
                 <SidebarMenuItem key={conversation.id}>
-                  <SidebarMenuButton
-                    asChild
-                    className="hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
-                  >
-                    <Link to={`/chat/${conversation.id}`}>
-                      <MessageSquare size={16} />
-                      <span className="font-inter text-[#3B3B3B] dark:text-white">
-                        {conversation.title}
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
+                  <div className="flex items-center w-full group">
+                    <SidebarMenuButton
+                      asChild
+                      className="flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
+                    >
+                      <Link to={`/chat/${conversation.id}`}>
+                        <MessageSquare size={16} />
+                        <span className="font-inter text-foreground">
+                          {conversation.title}
+                        </span>
+                      </Link>
+                    </SidebarMenuButton>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Deletar Conversa</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja deletar esta conversa? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteConversation(conversation.id)}
+                          >
+                            Deletar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
@@ -100,14 +164,14 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <Link to="/settings">
                 <Settings size={16} />
-                <span className="font-inter text-[#3B3B3B]">Configurações</span>
+                <span className="font-inter text-foreground">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut size={16} />
-              <span className="font-inter text-[#3B3B3B]">Sair</span>
+              <span className="font-inter text-foreground">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

@@ -164,15 +164,17 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
-      <CardContent>
+      <CardContent className="p-0">
         <MessageList messages={messages} />
-        <MessageInput
-          input={input}
-          setInput={setInput}
-          isLoading={isLoading}
-          onSubmit={handleSubmit}
-          onFileUpload={handleFileUpload}
-        />
+        <div className="sticky bottom-0 bg-background p-4">
+          <MessageInput
+            input={input}
+            setInput={setInput}
+            isLoading={isLoading}
+            onSubmit={handleSubmit}
+            onFileUpload={handleFileUpload}
+          />
+        </div>
       </CardContent>
     </Card>
   );

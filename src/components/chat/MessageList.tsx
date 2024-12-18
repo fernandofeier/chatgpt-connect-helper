@@ -33,7 +33,7 @@ export function MessageList({ messages }: MessageListProps) {
         className={`mb-4 p-3 rounded-lg ${
           message.role === "user"
             ? "bg-[#146EF5] text-white ml-auto max-w-[80%]"
-            : "bg-gray-100 dark:bg-gray-800 text-[#3B3B3B] dark:text-gray-200 max-w-[80%]"
+            : "bg-gray-100 dark:bg-gray-800 text-foreground max-w-[80%]"
         } font-inter text-[14px]`}
       >
         {isCodeBlock ? (
@@ -60,7 +60,7 @@ export function MessageList({ messages }: MessageListProps) {
   };
 
   return (
-    <ScrollArea className="h-[500px] mb-4 p-4 rounded-lg">
+    <ScrollArea className="h-[400px] mb-4 p-4 rounded-lg">
       {messages.map((message, index) => renderMessage(message, index))}
     </ScrollArea>
   );

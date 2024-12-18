@@ -14,6 +14,30 @@ interface MessageInputProps {
 export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUpload }: MessageInputProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) {
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          
+          if (fileInputRef.current) {
+            fileInputRef.current.files = dataTransfer.files;
+            const event = new Event('change', { bubbles: true });
+            fileInputRef.current.dispatchEvent(event);
+          }
+        }
+        break;
+      }
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} className="flex gap-2">
       <input
@@ -21,6 +45,7 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
         ref={fileInputRef}
         className="hidden"
         onChange={onFileUpload}
+        accept="image/*"
       />
       <Button
         type="button"
@@ -33,6 +58,7 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
+        onPaste={handlePaste}
         placeholder="Digite sua mensagem..."
         disabled={isLoading}
         className="font-inter"
