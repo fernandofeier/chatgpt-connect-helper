@@ -66,12 +66,12 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
           <img 
             src={previewImage.url} 
             alt="Preview" 
-            className="max-h-48 rounded-lg"
+            className="w-[92px] h-[92px] object-cover rounded-lg"
           />
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 bg-gray-800/50 hover:bg-gray-800/70"
+            className="absolute top-1 right-1 bg-gray-800/50 hover:bg-gray-800/70"
             onClick={removePreview}
           >
             <X className="h-4 w-4 text-white" />

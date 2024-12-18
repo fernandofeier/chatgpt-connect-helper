@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { Settings, MessageSquare, Plus, LogOut, Trash2 } from "lucide-react";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
+import { Settings, MessageSquare, Plus, LogOut, Trash2, Home } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -39,6 +39,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { id: currentConversationId } = useParams();
+  const location = useLocation();
+  const showHomeButton = conversations.length === 0 && location.pathname !== "/";
 
   const fetchConversations = async () => {
     const { data, error } = await supabase
@@ -110,6 +112,14 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="text-foreground">Conversas Recentes</SidebarGroupLabel>
           <SidebarGroupContent>
+            {showHomeButton && (
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => navigate("/")} className="w-full">
+                  <Home size={16} />
+                  <span className="text-foreground">Início</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenu>
               {conversations.map((conversation) => (
                 <SidebarMenuItem key={conversation.id}>
@@ -122,7 +132,7 @@ export function AppSidebar() {
                     >
                       <Link to={`/chat/${conversation.id}`}>
                         <MessageSquare size={16} />
-                        <span className="font-inter text-foreground">
+                        <span className="text-foreground">
                           {conversation.title}
                         </span>
                       </Link>
@@ -167,14 +177,14 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <Link to="/settings">
                 <Settings size={16} />
-                <span className="font-inter text-foreground">Configurações</span>
+                <span className="text-foreground">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut size={16} />
-              <span className="font-inter text-foreground">Sair</span>
+              <span className="text-foreground">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
