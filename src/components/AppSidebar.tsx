@@ -37,8 +37,8 @@ export function AppSidebar() {
 
       if (error) {
         toast({
-          title: "Error",
-          description: "Failed to load conversations",
+          title: "Erro",
+          description: "Falha ao carregar conversas",
           variant: "destructive",
         });
         return;
@@ -67,12 +67,12 @@ export function AppSidebar() {
           className="w-full bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter"
         >
           <Plus className="mr-2" size={16} />
-          New Chat
+          Nova Conversa
         </Button>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Recent Conversations</SidebarGroupLabel>
+          <SidebarGroupLabel>Conversas Recentes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {conversations.map((conversation) => (
@@ -97,14 +97,14 @@ export function AppSidebar() {
             <SidebarMenuButton asChild>
               <Link to="/settings">
                 <Settings size={16} />
-                <span className="font-inter text-[#3B3B3B]">Settings</span>
+                <span className="font-inter text-[#3B3B3B]">Configurações</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout}>
               <LogOut size={16} />
-              <span className="font-inter text-[#3B3B3B]">Logout</span>
+              <span className="font-inter text-[#3B3B3B]">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
