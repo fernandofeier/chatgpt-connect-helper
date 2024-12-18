@@ -102,21 +102,24 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    setInput(prev => `${prev} [Arquivo: ${file.name}]`);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, imageFile?: File) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() && !imageFile) return;
 
-    const userMessage: Message = { role: "user", content: input };
+    let messageContent = input;
+    if (imageFile) {
+      messageContent = `[Imagem: ${imageFile.name}]\n${input}`;
+    }
+
+    const userMessage: Message = { role: "user", content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
-    // Create new conversation if none exists
     if (!conversationId) {
-      const newConversationId = await createNewConversation(input.slice(0, 50) + (input.length > 50 ? "..." : ""));
+      const newConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
       if (!newConversationId) {
         setIsLoading(false);
         return;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Settings, MessageSquare, Plus, LogOut, Trash2 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +38,7 @@ export function AppSidebar() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { id: currentConversationId } = useParams();
 
   const fetchConversations = async () => {
     const { data, error } = await supabase
@@ -115,7 +116,9 @@ export function AppSidebar() {
                   <div className="flex items-center w-full group">
                     <SidebarMenuButton
                       asChild
-                      className="flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
+                      className={`flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 ${
+                        currentConversationId === conversation.id ? 'bg-gray-100 dark:bg-gray-800' : ''
+                      }`}
                     >
                       <Link to={`/chat/${conversation.id}`}>
                         <MessageSquare size={16} />
