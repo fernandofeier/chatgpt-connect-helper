@@ -1,13 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "./ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Paperclip, Copy } from "lucide-react";
-import ReactMarkdown from 'react-markdown';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { MessageList } from "./chat/MessageList";
+import { MessageInput } from "./chat/MessageInput";
 
 interface Message {
   role: "user" | "assistant";
@@ -23,17 +20,17 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { id: existingConversationId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeConversation = async () => {
+    const loadConversation = async () => {
       if (existingConversationId) {
         setConversationId(existingConversationId);
         const { data: messagesData, error } = await supabase
           .from("messages")
-          .select("*")
+          .select("role, content")
           .eq("conversation_id", existingConversationId)
           .order("created_at", { ascending: true });
 
@@ -46,34 +43,39 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           return;
         }
 
-        setMessages(messagesData || []);
-      } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data, error } = await supabase
-          .from("conversations")
-          .insert([
-            { user_id: user.id, title: "Nova Conversa" }
-          ])
-          .select()
-          .single();
-
-        if (error) {
-          toast({
-            title: "Erro",
-            description: "Falha ao criar conversa",
-            variant: "destructive",
-          });
-          return;
+        if (messagesData) {
+          setMessages(messagesData as Message[]);
         }
-
-        setConversationId(data.id);
       }
     };
 
-    initializeConversation();
+    loadConversation();
   }, [existingConversationId, toast]);
+
+  const createNewConversation = async (title: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from("conversations")
+      .insert([
+        { user_id: user.id, title }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao criar conversa",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    navigate(`/chat/${data.id}`);
+    return data.id;
+  };
 
   const saveMessage = async (message: Message) => {
     if (!conversationId) return;
@@ -97,20 +99,9 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     }
   };
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast({
-      title: "Sucesso",
-      description: "Código copiado para a área de transferência",
-    });
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    // Here you would implement file upload logic
-    // For now, we'll just add the file name to the input
     setInput(prev => `${prev} [Arquivo: ${file.name}]`);
   };
 
@@ -122,6 +113,16 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+
+    // Create new conversation if none exists
+    if (!conversationId) {
+      const newConversationId = await createNewConversation(input.slice(0, 50) + (input.length > 50 ? "..." : ""));
+      if (!newConversationId) {
+        setIsLoading(false);
+        return;
+      }
+      setConversationId(newConversationId);
+    }
 
     await saveMessage(userMessage);
 
@@ -150,15 +151,6 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
 
       setMessages((prev) => [...prev, assistantMessage]);
       await saveMessage(assistantMessage);
-
-      // Update conversation title after first message
-      if (messages.length === 0 && conversationId) {
-        const title = input.slice(0, 50) + (input.length > 50 ? "..." : "");
-        await supabase
-          .from("conversations")
-          .update({ title })
-          .eq("id", conversationId);
-      }
     } catch (error) {
       toast({
         title: "Erro",
@@ -170,77 +162,17 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     }
   };
 
-  const renderMessage = (message: Message, index: number) => {
-    const isCodeBlock = message.content.includes("```");
-    
-    return (
-      <div
-        key={index}
-        className={`mb-4 p-3 rounded-lg ${
-          message.role === "user"
-            ? "bg-[#146EF5] text-white ml-auto max-w-[80%]"
-            : "bg-gray-100 text-[#3B3B3B] max-w-[80%]"
-        } font-inter text-[14px]`}
-      >
-        {isCodeBlock ? (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2"
-              onClick={() => handleCopyCode(message.content)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <ReactMarkdown
-              className="mt-6 p-4 bg-gray-200 rounded-md font-mono"
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <ReactMarkdown>{message.content}</ReactMarkdown>
-        )}
-      </div>
-    );
-  };
-
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-none">
+    <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
       <CardContent>
-        <ScrollArea className="h-[600px] mb-4 p-4 rounded-lg">
-          {messages.map((message, index) => renderMessage(message, index))}
-        </ScrollArea>
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Digite sua mensagem..."
-            disabled={isLoading}
-            className="font-inter"
-          />
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter"
-          >
-            Enviar
-          </Button>
-        </form>
+        <MessageList messages={messages} />
+        <MessageInput
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          onSubmit={handleSubmit}
+          onFileUpload={handleFileUpload}
+        />
       </CardContent>
     </Card>
   );

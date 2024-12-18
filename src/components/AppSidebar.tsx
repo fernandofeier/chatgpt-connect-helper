@@ -77,10 +77,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {conversations.map((conversation) => (
                 <SidebarMenuItem key={conversation.id}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton
+                    asChild
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700"
+                  >
                     <Link to={`/chat/${conversation.id}`}>
                       <MessageSquare size={16} />
-                      <span className="font-inter text-[#3B3B3B]">
+                      <span className="font-inter text-[#3B3B3B] dark:text-white">
                         {conversation.title}
                       </span>
                     </Link>

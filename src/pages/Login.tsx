@@ -37,10 +37,10 @@ const Login = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
       <div className="w-full max-w-md p-8">
-        <h1 className="text-2xl font-inter font-semibold text-[#3B3B3B] mb-8 text-center">
-          Bem-vindo ao ChatGPT
+        <h1 className="text-2xl font-inter font-semibold text-[#3B3B3B] dark:text-white mb-8 text-center">
+          Bem-vindo ao ByChat
         </h1>
         <Auth
           supabaseClient={supabase}
