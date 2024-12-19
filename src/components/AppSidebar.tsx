@@ -62,6 +62,25 @@ export function AppSidebar() {
 
   useEffect(() => {
     fetchConversations();
+
+    const channel = supabase
+      .channel('conversations')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        },
+        () => {
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [toast]);
 
   const handleNewChat = () => {
@@ -93,8 +112,9 @@ export function AppSidebar() {
       description: "Conversa deletada com sucesso",
     });
 
-    await fetchConversations();
-    navigate("/");
+    if (id === currentConversationId) {
+      navigate("/");
+    }
   };
 
   return (
