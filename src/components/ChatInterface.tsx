@@ -56,6 +56,37 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     loadConversation();
   }, [existingConversationId, toast]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        async (payload) => {
+          if (payload.new && payload.new.conversation_id === conversationId) {
+            const { data: messagesData, error } = await supabase
+              .from("messages")
+              .select("role, content")
+              .eq("conversation_id", conversationId)
+              .order("created_at", { ascending: true });
+
+            if (!error && messagesData) {
+              setMessages(messagesData as Message[]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId]);
+
   const createNewConversation = async (title: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
@@ -142,7 +173,7 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           Authorization: `Bearer ${initialApiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4",
           messages: [...messages, userMessage],
         }),
       });
