@@ -33,6 +33,13 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (previewImage) {
@@ -97,6 +104,7 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={previewImage ? "Adicione uma descrição para a imagem..." : "Digite sua mensagem..."}
           disabled={isLoading}

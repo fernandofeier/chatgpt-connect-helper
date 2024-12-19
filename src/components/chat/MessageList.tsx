@@ -26,8 +26,31 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   const renderMessage = (message: Message, index: number) => {
-    const isCodeBlock = message.content.includes("```");
-    
+    const processMessageContent = (content: string) => {
+      const parts = content.split(/(```[\s\S]*?```)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('```') && part.endsWith('```')) {
+          const code = part.slice(3, -3);
+          return (
+            <div key={i} className="relative mt-2 mb-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-2"
+                onClick={() => handleCopyCode(code)}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <div className="mt-6 p-4 bg-gray-200 dark:bg-gray-700 rounded-md font-mono overflow-x-auto">
+                <ReactMarkdown>{code}</ReactMarkdown>
+              </div>
+            </div>
+          );
+        }
+        return <ReactMarkdown key={i}>{part}</ReactMarkdown>;
+      });
+    };
+
     return (
       <div
         key={index}
@@ -37,25 +60,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             : "bg-gray-100 dark:bg-gray-800 text-foreground max-w-[40%]"
         } font-inter text-[14px] break-words`}
       >
-        {isCodeBlock ? (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2"
-              onClick={() => handleCopyCode(message.content)}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <ReactMarkdown
-              className="mt-6 p-4 bg-gray-200 dark:bg-gray-700 rounded-md font-mono overflow-x-auto"
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
-        ) : (
-          <ReactMarkdown>{message.content}</ReactMarkdown>
-        )}
+        {processMessageContent(message.content)}
       </div>
     );
   };

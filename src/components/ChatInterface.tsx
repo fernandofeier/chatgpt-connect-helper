@@ -122,13 +122,14 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     setInput("");
     setIsLoading(true);
 
-    if (!conversationId) {
-      const newConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
-      if (!newConversationId) {
+    let currentConversationId = conversationId;
+    if (!currentConversationId) {
+      currentConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
+      if (!currentConversationId) {
         setIsLoading(false);
         return;
       }
-      setConversationId(newConversationId);
+      setConversationId(currentConversationId);
     }
 
     await saveMessage(userMessage);
@@ -173,7 +174,7 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
       <CardContent className="p-0">
         <MessageList messages={messages} isLoading={isLoading} />
-        <div className="sticky bottom-0 bg-background pb-4">
+        <div className="sticky bottom-6 bg-background">
           <MessageInput
             input={input}
             setInput={setInput}
