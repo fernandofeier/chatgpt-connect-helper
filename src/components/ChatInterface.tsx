@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useParams, useNavigate } from 'react-router-dom';
 import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,6 +14,13 @@ interface Message {
 
 interface ChatInterfaceProps {
   initialApiKey: string;
+}
+
+interface MessagePayload {
+  conversation_id: string;
+  role: string;
+  content: string;
+  created_at: string;
 }
 
 export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
@@ -66,17 +74,20 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           schema: 'public',
           table: 'messages'
         },
-        async (payload) => {
+        (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
           if (payload.new && payload.new.conversation_id === conversationId) {
-            const { data: messagesData, error } = await supabase
-              .from("messages")
-              .select("role, content")
-              .eq("conversation_id", conversationId)
-              .order("created_at", { ascending: true });
+            const fetchMessages = async () => {
+              const { data: messagesData, error } = await supabase
+                .from("messages")
+                .select("role, content")
+                .eq("conversation_id", conversationId)
+                .order("created_at", { ascending: true });
 
-            if (!error && messagesData) {
-              setMessages(messagesData as Message[]);
-            }
+              if (!error && messagesData) {
+                setMessages(messagesData as Message[]);
+              }
+            };
+            fetchMessages();
           }
         }
       )
