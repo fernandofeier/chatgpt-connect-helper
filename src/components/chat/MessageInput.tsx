@@ -1,4 +1,4 @@
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X } from "lucide-react";
 import { useRef, useState } from "react";
@@ -94,13 +94,13 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
         >
           <Paperclip className="h-4 w-4" />
         </Button>
-        <Input
+        <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onPaste={handlePaste}
           placeholder={previewImage ? "Adicione uma descrição para a imagem..." : "Digite sua mensagem..."}
           disabled={isLoading}
-          className="font-inter"
+          className="min-h-[72px] resize-none font-inter"
         />
         <Button
           type="submit"

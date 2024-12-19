@@ -25,27 +25,31 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!existingConversationId) {
+      setMessages([]);
+      setConversationId(null);
+      return;
+    }
+
     const loadConversation = async () => {
-      if (existingConversationId) {
+      const { data: messagesData, error } = await supabase
+        .from("messages")
+        .select("role, content")
+        .eq("conversation_id", existingConversationId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar mensagens",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (messagesData) {
+        setMessages(messagesData as Message[]);
         setConversationId(existingConversationId);
-        const { data: messagesData, error } = await supabase
-          .from("messages")
-          .select("role, content")
-          .eq("conversation_id", existingConversationId)
-          .order("created_at", { ascending: true });
-
-        if (error) {
-          toast({
-            title: "Erro",
-            description: "Falha ao carregar mensagens",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (messagesData) {
-          setMessages(messagesData as Message[]);
-        }
       }
     };
 
@@ -168,8 +172,8 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
       <CardContent className="p-0">
-        <MessageList messages={messages} />
-        <div className="sticky bottom-0 bg-background p-4">
+        <MessageList messages={messages} isLoading={isLoading} />
+        <div className="sticky bottom-0 bg-background pb-4">
           <MessageInput
             input={input}
             setInput={setInput}
