@@ -2,40 +2,26 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "./ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
+import { useChat } from "@/hooks/useChat";
+import { Message, MessagePayload } from "@/types/chat";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
 
 interface ChatInterfaceProps {
   initialApiKey: string;
 }
 
-interface MessagePayload {
-  conversation_id: string;
-  role: string;
-  content: string;
-  created_at: string;
-}
-
 export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
-  const { toast } = useToast();
   const { id: existingConversationId } = useParams();
-  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey);
 
   useEffect(() => {
     if (!existingConversationId) {
       setMessages([]);
-      setConversationId(null);
       return;
     }
 
@@ -57,12 +43,11 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
 
       if (messagesData) {
         setMessages(messagesData as Message[]);
-        setConversationId(existingConversationId);
       }
     };
 
     loadConversation();
-  }, [existingConversationId, toast]);
+  }, [existingConversationId, setMessages, toast]);
 
   useEffect(() => {
     const channel = supabase
@@ -76,12 +61,12 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
         },
         (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
           const newMessage = payload.new as MessagePayload | null;
-          if (newMessage && newMessage.conversation_id === conversationId) {
+          if (newMessage && newMessage.conversation_id === existingConversationId) {
             const fetchMessages = async () => {
               const { data: messagesData, error } = await supabase
                 .from("messages")
                 .select("role, content")
-                .eq("conversation_id", conversationId)
+                .eq("conversation_id", existingConversationId)
                 .order("created_at", { ascending: true });
 
               if (!error && messagesData) {
@@ -97,120 +82,17 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
-
-  const createNewConversation = async (title: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data, error } = await supabase
-      .from("conversations")
-      .insert([
-        { user_id: user.id, title }
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao criar conversa",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    navigate(`/chat/${data.id}`);
-    return data.id;
-  };
-
-  const saveMessage = async (message: Message) => {
-    if (!conversationId) return;
-
-    const { error } = await supabase
-      .from("messages")
-      .insert([
-        {
-          conversation_id: conversationId,
-          role: message.role,
-          content: message.content,
-        }
-      ]);
-
-    if (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao salvar mensagem",
-        variant: "destructive",
-      });
-    }
-  };
+  }, [existingConversationId, setMessages]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
   };
 
-  const handleSubmit = async (e: React.FormEvent, imageFile?: File) => {
+  const onSubmit = async (e: React.FormEvent, imageFile?: File) => {
     e.preventDefault();
-    if (!input.trim() && !imageFile) return;
-
-    let messageContent = input;
-    if (imageFile) {
-      messageContent = `[Imagem: ${imageFile.name}]\n${input}`;
-    }
-
-    const userMessage: Message = { role: "user", content: messageContent };
-    setMessages((prev) => [...prev, userMessage]);
+    await handleSubmit(input, existingConversationId, imageFile);
     setInput("");
-    setIsLoading(true);
-
-    let currentConversationId = conversationId;
-    if (!currentConversationId) {
-      currentConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
-      if (!currentConversationId) {
-        setIsLoading(false);
-        return;
-      }
-      setConversationId(currentConversationId);
-    }
-
-    await saveMessage(userMessage);
-
-    try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${initialApiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4",
-          messages: [...messages, userMessage],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro na chamada da API");
-      }
-
-      const data = await response.json();
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.choices[0].message.content,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-      await saveMessage(assistantMessage);
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao processar sua mensagem. Verifique sua chave API.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   return (
@@ -222,7 +104,7 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
             input={input}
             setInput={setInput}
             isLoading={isLoading}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
             onFileUpload={handleFileUpload}
           />
         </div>
