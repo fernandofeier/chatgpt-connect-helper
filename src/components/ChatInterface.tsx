@@ -75,7 +75,8 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           table: 'messages'
         },
         (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
-          if (payload.new && payload.new.conversation_id === conversationId) {
+          const newMessage = payload.new as MessagePayload | null;
+          if (newMessage && newMessage.conversation_id === conversationId) {
             const fetchMessages = async () => {
               const { data: messagesData, error } = await supabase
                 .from("messages")
