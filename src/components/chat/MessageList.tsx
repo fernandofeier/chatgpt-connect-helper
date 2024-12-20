@@ -18,6 +18,7 @@ interface MessageListProps {
 export function MessageList({ messages, isLoading }: MessageListProps) {
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -29,15 +30,12 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 
   useEffect(() => {
     const scrollToBottom = () => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTo({
-          top: scrollRef.current.scrollHeight,
-          behavior: 'smooth'
-        });
+      if (lastMessageRef.current) {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
       }
     };
 
-    // Initial scroll
+    // Scroll to bottom when new messages are added or during streaming
     scrollToBottom();
 
     // Set up an interval to handle streaming content
@@ -74,10 +72,12 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     };
 
     const hasCodeBlock = message.content.includes("```");
+    const isLastMessage = index === messages.length - 1;
 
     return (
       <div
         key={index}
+        ref={isLastMessage ? lastMessageRef : null}
         className={`mb-4 p-3 rounded-lg ${
           message.role === "user"
             ? "bg-[#146EF5] text-white ml-auto max-w-[40%]"
