@@ -27,13 +27,24 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     });
   };
 
+  // Auto-scroll effect for new messages and streaming content
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
-    }
+    const scrollToBottom = () => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    scrollToBottom();
+
+    // Set up an interval to handle streaming content
+    const scrollInterval = setInterval(scrollToBottom, 100);
+
+    // Clean up interval
+    return () => clearInterval(scrollInterval);
   }, [messages]);
 
   const renderMessage = (message: Message, index: number) => {
