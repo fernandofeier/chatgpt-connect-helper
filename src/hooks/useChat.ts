@@ -88,6 +88,7 @@ export function useChat(initialApiKey: string) {
         body: JSON.stringify({
           model: "gpt-4",
           messages: [...messages, userMessage],
+          stream: true,
         }),
       });
 
@@ -95,13 +96,38 @@ export function useChat(initialApiKey: string) {
         throw new Error("Erro na chamada da API");
       }
 
-      const data = await response.json();
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: data.choices[0].message.content,
-      };
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantMessage: Message = { role: "assistant", content: "" };
+      setMessages(prev => [...prev, assistantMessage]);
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              try {
+                const data = JSON.parse(line.slice(6));
+                const content = data.choices[0]?.delta?.content || '';
+                assistantMessage.content += content;
+                setMessages(prev => 
+                  prev.map((msg, i) => 
+                    i === prev.length - 1 ? assistantMessage : msg
+                  )
+                );
+              } catch (e) {
+                console.error('Error parsing chunk:', e);
+              }
+            }
+          }
+        }
+      }
+
       await saveMessage(assistantMessage, currentConversationId);
     } catch (error) {
       toast({

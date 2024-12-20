@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface MessageListProps {
 
 export function MessageList({ messages, isLoading }: MessageListProps) {
   const { toast } = useToast();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -24,6 +26,15 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
       description: "Código copiado para a área de transferência",
     });
   };
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [messages]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
@@ -59,7 +70,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         className={`mb-4 p-3 rounded-lg ${
           message.role === "user"
             ? "bg-[#146EF5] text-white ml-auto max-w-[40%]"
-            : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'max-w-[50%]' : 'max-w-[40%]'}`
+            : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'min-w-[60%] max-w-[80%]' : 'max-w-[40%]'}`
         } font-inter text-[14px] break-words`}
       >
         {processMessageContent(message.content)}
@@ -68,7 +79,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   return (
-    <ScrollArea className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg">
+    <ScrollArea className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg" ref={scrollRef}>
       {messages.map((message, index) => renderMessage(message, index))}
       {isLoading && (
         <div className="flex items-center space-x-2 mb-4 max-w-[40%]">

@@ -146,7 +146,7 @@ export function AppSidebar() {
                   <div className="flex items-center w-full group">
                     <SidebarMenuButton
                       asChild
-                      className={`flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 ${
+                      className={`flex-1 hover:bg-gray-100 dark:hover:bg-gray-800 ${
                         currentConversationId === conversation.id ? 'bg-gray-100 dark:bg-gray-800' : ''
                       }`}
                     >
