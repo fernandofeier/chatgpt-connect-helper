@@ -19,6 +19,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(messages.length);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -29,21 +30,14 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   useEffect(() => {
-    const scrollToBottom = () => {
-      if (lastMessageRef.current) {
-        lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
-    };
-
-    // Scroll to bottom when new messages are added or during streaming
-    scrollToBottom();
-
-    // Set up an interval to handle streaming content
-    const scrollInterval = setInterval(scrollToBottom, 100);
-
-    // Clean up interval
-    return () => clearInterval(scrollInterval);
-  }, [messages]);
+    const shouldAutoScroll = messages.length > prevMessagesLengthRef.current || isLoading;
+    
+    if (shouldAutoScroll && lastMessageRef.current) {
+      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages, isLoading]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
