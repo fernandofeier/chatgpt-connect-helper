@@ -27,7 +27,6 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     });
   };
 
-  // Auto-scroll effect for new messages and streaming content
   useEffect(() => {
     const scrollToBottom = () => {
       if (scrollRef.current) {
@@ -38,6 +37,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
       }
     };
 
+    // Initial scroll
     scrollToBottom();
 
     // Set up an interval to handle streaming content
