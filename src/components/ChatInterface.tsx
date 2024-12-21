@@ -95,18 +95,20 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
-      <CardContent className="p-0">
-        <div className="mb-4 p-4">
+      <CardContent className="p-4">
+        <div className="mb-4">
           <ModelSelector model={model} onModelChange={setModel} />
         </div>
-        <MessageList messages={messages} isLoading={isLoading} />
-        <div className="sticky bottom-6 bg-background">
-          <MessageInput
-            input={input}
-            setInput={setInput}
-            isLoading={isLoading}
-            onSubmit={onSubmit}
-          />
+        <div className="flex flex-col h-[calc(100vh-200px)]">
+          <MessageList messages={messages} isLoading={isLoading} />
+          <div className="sticky bottom-0 bg-background pt-4">
+            <MessageInput
+              input={input}
+              setInput={setInput}
+              isLoading={isLoading}
+              onSubmit={onSubmit}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

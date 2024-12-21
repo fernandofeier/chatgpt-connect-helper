@@ -63,7 +63,7 @@ export function AppSidebar() {
         <Link to="/chat">
           <Button
             variant="outline"
-            className="w-full justify-start gap-2"
+            className="w-full h-10 justify-start gap-2 text-sm"
           >
             <MessageSquarePlus className="h-4 w-4" />
             Nova conversa
@@ -79,7 +79,11 @@ export function AppSidebar() {
               <SidebarMenuItem key={conversation.id}>
                 <Link to={`/chat/${conversation.id}`} className="w-full">
                   <SidebarMenuButton
-                    className={currentConversationId === conversation.id ? "bg-gray-100 dark:bg-gray-800" : ""}
+                    className={`${
+                      currentConversationId === conversation.id
+                        ? "bg-gray-100 dark:bg-gray-800"
+                        : ""
+                    } w-full`}
                   >
                     {conversation.title}
                   </SidebarMenuButton>

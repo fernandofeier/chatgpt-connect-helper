@@ -24,7 +24,6 @@ export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageIn
     onSubmit(e);
   };
 
-  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -34,26 +33,24 @@ export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageIn
   }, [input]);
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <Textarea
-          ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Digite sua mensagem..."
-          disabled={isLoading}
-          className="min-h-[72px] resize-none font-inter"
-          rows={1}
-        />
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter"
-        >
-          Enviar
-        </Button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <Textarea
+        ref={textareaRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Digite sua mensagem..."
+        disabled={isLoading}
+        className="min-h-[52px] resize-none font-inter"
+        rows={1}
+      />
+      <Button
+        type="submit"
+        disabled={isLoading}
+        className="bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter shrink-0"
+      >
+        Enviar
+      </Button>
+    </form>
   );
 }
