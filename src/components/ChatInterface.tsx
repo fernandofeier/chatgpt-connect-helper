@@ -16,7 +16,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<OpenAIModel>("gpt-4-turbo-preview");
+  const [model, setModel] = useState<OpenAIModel>("gpt-4o-mini");
   const { id: existingConversationId } = useParams();
   const { toast } = useToast();
   const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey, model);

@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type OpenAIModel = "gpt-4-turbo-preview" | "gpt-4" | "gpt-3.5-turbo" | "gpt-4-0125-preview" | "gpt-4-0613";
+export type OpenAIModel = "gpt-3.5-turbo" | "gpt-4o" | "gpt-4o-mini" | "gpt-4" | "gpt-o1-mini";
 
 interface ModelSelectorProps {
   model: OpenAIModel;
@@ -20,11 +20,11 @@ export function ModelSelector({ model, onModelChange }: ModelSelectorProps) {
         <SelectValue placeholder="Select a model" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="gpt-4-turbo-preview">GPT-4 Turbo</SelectItem>
+        <SelectItem value="gpt-4o-mini">GPT-4o-mini</SelectItem>
+        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
         <SelectItem value="gpt-4">GPT-4</SelectItem>
         <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-        <SelectItem value="gpt-4-0125-preview">GPT-4-0125-Preview</SelectItem>
-        <SelectItem value="gpt-4-0613">GPT-4-0613</SelectItem>
+        <SelectItem value="gpt-o1-mini">GPT-o1-mini</SelectItem>
       </SelectContent>
     </Select>
   );
