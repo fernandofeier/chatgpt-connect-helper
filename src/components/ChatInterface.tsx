@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
 import { useChat } from "@/hooks/useChat";
-import { Message, MessagePayload } from "@/types/chat";
+import { Message } from "@/types/chat";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ModelSelector, OpenAIModel } from "./chat/ModelSelector";
 
@@ -61,8 +61,8 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           schema: 'public',
           table: 'messages'
         },
-        (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
-          const newMessage = payload.new as MessagePayload | null;
+        (payload: RealtimePostgresChangesPayload<Message>) => {
+          const newMessage = payload.new as Message | null;
           if (newMessage && newMessage.conversation_id === existingConversationId) {
             const fetchMessages = async () => {
               const { data: messagesData, error } = await supabase
@@ -86,14 +86,10 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     };
   }, [existingConversationId, setMessages]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-  };
-
-  const onSubmit = async (e: React.FormEvent, imageFile?: File) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(input, existingConversationId, imageFile);
+    if (!input.trim()) return;
+    await handleSubmit(input, existingConversationId);
     setInput("");
   };
 
@@ -110,7 +106,6 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
             setInput={setInput}
             isLoading={isLoading}
             onSubmit={onSubmit}
-            onFileUpload={handleFileUpload}
           />
         </div>
       </CardContent>
