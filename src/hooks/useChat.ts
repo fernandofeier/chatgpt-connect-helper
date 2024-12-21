@@ -15,19 +15,21 @@ export function useChat(initialApiKey: string, model: OpenAIModel) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Create a thread in OpenAI
+    // Create a thread in OpenAI with the required beta header
     const threadResponse = await fetch("https://api.openai.com/v1/threads", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${initialApiKey}`,
+        "Authorization": `Bearer ${initialApiKey}`,
+        "OpenAI-Beta": "assistants=v2"  // Added this header
       },
     });
 
     if (!threadResponse.ok) {
+      const errorData = await threadResponse.json();
       toast({
         title: "Erro",
-        description: "Falha ao criar thread na OpenAI",
+        description: `Falha ao criar thread na OpenAI: ${errorData.error?.message || 'Unknown error'}`,
         variant: "destructive",
       });
       return null;
@@ -116,7 +118,8 @@ export function useChat(initialApiKey: string, model: OpenAIModel) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${initialApiKey}`,
+          "Authorization": `Bearer ${initialApiKey}`,
+          "OpenAI-Beta": "assistants=v2"  // Added this header
         },
         body: JSON.stringify({
           model: model,
