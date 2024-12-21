@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
 import { useChat } from "@/hooks/useChat";
-import { Message } from "@/types/chat";
+import { Message, MessagePayload } from "@/types/chat";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ModelSelector, OpenAIModel } from "./chat/ModelSelector";
 
@@ -61,8 +61,8 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           schema: 'public',
           table: 'messages'
         },
-        (payload: RealtimePostgresChangesPayload<Message>) => {
-          const newMessage = payload.new as Message | null;
+        (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
+          const newMessage = payload.new as MessagePayload | null;
           if (newMessage && newMessage.conversation_id === existingConversationId) {
             const fetchMessages = async () => {
               const { data: messagesData, error } = await supabase
@@ -86,29 +86,32 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     };
   }, [existingConversationId, setMessages]);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+  };
+
+  const onSubmit = async (e: React.FormEvent, imageFile?: File) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    await handleSubmit(input, existingConversationId);
+    await handleSubmit(input, existingConversationId, imageFile);
     setInput("");
   };
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
-      <CardContent className="p-4">
-        <div className="mb-4">
+      <CardContent className="p-0">
+        <div className="mb-4 p-4">
           <ModelSelector model={model} onModelChange={setModel} />
         </div>
-        <div className="flex flex-col h-[calc(100vh-200px)]">
-          <MessageList messages={messages} isLoading={isLoading} />
-          <div className="sticky bottom-0 bg-background pt-4">
-            <MessageInput
-              input={input}
-              setInput={setInput}
-              isLoading={isLoading}
-              onSubmit={onSubmit}
-            />
-          </div>
+        <MessageList messages={messages} isLoading={isLoading} />
+        <div className="sticky bottom-6 bg-background">
+          <MessageInput
+            input={input}
+            setInput={setInput}
+            isLoading={isLoading}
+            onSubmit={onSubmit}
+            onFileUpload={handleFileUpload}
+          />
         </div>
       </CardContent>
     </Card>
