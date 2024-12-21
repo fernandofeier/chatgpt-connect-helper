@@ -1,6 +1,7 @@
 export interface Message {
   role: "user" | "assistant";
   content: string;
+  conversation_id?: string;
 }
 
 export interface MessagePayload {
