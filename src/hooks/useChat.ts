@@ -119,13 +119,12 @@ export function useChat(initialApiKey: string, model: OpenAIModel) {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${initialApiKey}`,
-          "OpenAI-Beta": "assistants=v2"  // Added this header
+          "OpenAI-Beta": "assistants=v2"
         },
         body: JSON.stringify({
           model: model,
           messages: [...messages, userMessage],
           stream: true,
-          thread_id: threadId,
         }),
       });
 
