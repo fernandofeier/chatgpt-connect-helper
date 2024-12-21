@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "@/types/chat";
+import { OpenAIModel } from "@/components/chat/ModelSelector";
 
-export function useChat(initialApiKey: string) {
+export function useChat(initialApiKey: string, model: OpenAIModel) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -14,10 +15,31 @@ export function useChat(initialApiKey: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    // Create a thread in OpenAI
+    const threadResponse = await fetch("https://api.openai.com/v1/threads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${initialApiKey}`,
+      },
+    });
+
+    if (!threadResponse.ok) {
+      toast({
+        title: "Erro",
+        description: "Falha ao criar thread na OpenAI",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    const threadData = await threadResponse.json();
+    const threadId = threadData.id;
+
     const { data, error } = await supabase
       .from("conversations")
       .insert([
-        { user_id: user.id, title }
+        { user_id: user.id, title, thread_id: threadId }
       ])
       .select()
       .single();
@@ -68,12 +90,23 @@ export function useChat(initialApiKey: string) {
     setIsLoading(true);
 
     let currentConversationId = conversationId;
+    let threadId: string | null = null;
+
     if (!currentConversationId) {
       currentConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
       if (!currentConversationId) {
         setIsLoading(false);
         return;
       }
+    } else {
+      // Get thread_id for existing conversation
+      const { data: conversationData } = await supabase
+        .from("conversations")
+        .select("thread_id")
+        .eq("id", currentConversationId)
+        .single();
+      
+      threadId = conversationData?.thread_id || null;
     }
 
     await saveMessage(userMessage, currentConversationId);
@@ -86,9 +119,10 @@ export function useChat(initialApiKey: string) {
           Authorization: `Bearer ${initialApiKey}`,
         },
         body: JSON.stringify({
-          model: "gpt-4",
+          model: model,
           messages: [...messages, userMessage],
           stream: true,
+          thread_id: threadId,
         }),
       });
 

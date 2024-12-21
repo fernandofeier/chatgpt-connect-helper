@@ -8,6 +8,7 @@ import { MessageInput } from "./chat/MessageInput";
 import { useChat } from "@/hooks/useChat";
 import { Message, MessagePayload } from "@/types/chat";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { ModelSelector, OpenAIModel } from "./chat/ModelSelector";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
@@ -15,9 +16,10 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
+  const [model, setModel] = useState<OpenAIModel>("gpt-4-turbo-preview");
   const { id: existingConversationId } = useParams();
   const { toast } = useToast();
-  const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey);
+  const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey, model);
 
   useEffect(() => {
     if (!existingConversationId) {
@@ -98,6 +100,9 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
       <CardContent className="p-0">
+        <div className="mb-4 p-4">
+          <ModelSelector model={model} onModelChange={setModel} />
+        </div>
         <MessageList messages={messages} isLoading={isLoading} />
         <div className="sticky bottom-6 bg-background">
           <MessageInput
