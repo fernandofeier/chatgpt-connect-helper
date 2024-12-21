@@ -74,8 +74,8 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         ref={isLastMessage ? lastMessageRef : null}
         className={`mb-4 p-3 rounded-lg ${
           message.role === "user"
-            ? "bg-[#146EF5] text-white ml-auto max-w-[40%]"
-            : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'min-w-[60%] max-w-[80%]' : 'max-w-[40%]'}`
+            ? "bg-[#146EF5] text-white ml-auto max-w-[85%] md:max-w-[40%]"
+            : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'min-w-[60%] max-w-[85%] md:max-w-[80%]' : 'max-w-[85%] md:max-w-[40%]'}`
         } font-inter text-[14px] break-words`}
       >
         {processMessageContent(message.content)}

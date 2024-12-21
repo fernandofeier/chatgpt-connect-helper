@@ -7,8 +7,8 @@ import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
 import { useChat } from "@/hooks/useChat";
 import { Message, MessagePayload } from "@/types/chat";
-import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { ModelSelector, OpenAIModel } from "./chat/ModelSelector";
+import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
@@ -86,14 +86,9 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
     };
   }, [existingConversationId, setMessages]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-  };
-
-  const onSubmit = async (e: React.FormEvent, imageFile?: File) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(input, existingConversationId, imageFile);
+    await handleSubmit(input, existingConversationId);
     setInput("");
   };
 
@@ -104,13 +99,12 @@ export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
           <ModelSelector model={model} onModelChange={setModel} />
         </div>
         <MessageList messages={messages} isLoading={isLoading} />
-        <div className="sticky bottom-6 bg-background">
+        <div className="sticky bottom-0 bg-background px-2 pb-2 md:px-4 md:pb-4">
           <MessageInput
             input={input}
             setInput={setInput}
             isLoading={isLoading}
             onSubmit={onSubmit}
-            onFileUpload={handleFileUpload}
           />
         </div>
       </CardContent>

@@ -1,37 +1,24 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Paperclip, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Send } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface MessageInputProps {
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
-  onSubmit: (e: React.FormEvent, imageFile?: File) => void;
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSubmit: (e: React.FormEvent) => void;
 }
 
-export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUpload }: MessageInputProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [previewImage, setPreviewImage] = useState<{ file: File; url: string } | null>(null);
+export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    
-    if (!items) return;
-
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf("image") !== -1) {
-        e.preventDefault();
-        const file = items[i].getAsFile();
-        if (file) {
-          const url = URL.createObjectURL(file);
-          setPreviewImage({ file, url });
-        }
-        break;
-      }
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  };
+  }, [input]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -42,82 +29,30 @@ export function MessageInput({ input, setInput, isLoading, onSubmit, onFileUploa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (previewImage) {
-      onSubmit(e, previewImage.file);
-      setPreviewImage(null);
-    } else {
+    if (input.trim()) {
       onSubmit(e);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewImage({ file, url });
-    }
-    onFileUpload(e);
-  };
-
-  const removePreview = () => {
-    if (previewImage) {
-      URL.revokeObjectURL(previewImage.url);
-      setPreviewImage(null);
-    }
-  };
-
   return (
-    <div className="space-y-4">
-      {previewImage && (
-        <div className="relative inline-block">
-          <img 
-            src={previewImage.url} 
-            alt="Preview" 
-            className="w-[92px] h-[92px] object-cover rounded-lg"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-1 right-1 bg-gray-800/50 hover:bg-gray-800/70"
-            onClick={removePreview}
-          >
-            <X className="h-4 w-4 text-white" />
-          </Button>
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileChange}
-          accept="image/*"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Paperclip className="h-4 w-4" />
-        </Button>
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          placeholder={previewImage ? "Adicione uma descrição para a imagem..." : "Digite sua mensagem..."}
-          disabled={isLoading}
-          className="min-h-[72px] resize-none font-inter"
-        />
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter"
-        >
-          Enviar
-        </Button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <Textarea
+        ref={textareaRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Digite sua mensagem..."
+        disabled={isLoading}
+        className="min-h-[48px] max-h-[200px] resize-none rounded-xl font-inter p-3"
+        style={{ overflow: 'hidden' }}
+      />
+      <Button
+        type="submit"
+        disabled={isLoading || !input.trim()}
+        className="bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter rounded-xl h-12 w-12 p-0 flex items-center justify-center"
+      >
+        <Send className="h-5 w-5" />
+      </Button>
+    </form>
   );
 }
