@@ -70,7 +70,7 @@ function App() {
                   path="/*"
                   element={
                     <ProtectedRoute>
-                      <SidebarProvider defaultIsOpen={false}>
+                      <SidebarProvider defaultOpen={false}>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
                           <main className="flex-1 relative">
