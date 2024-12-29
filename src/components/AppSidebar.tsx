@@ -120,7 +120,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className={`${isMobile ? 'absolute z-50 h-full' : ''}`}>
+    <Sidebar className={`${isMobile ? 'absolute z-50 h-full' : ''} transition-transform duration-300`}>
       <SidebarHeader>
         <Button
           onClick={handleNewChat}

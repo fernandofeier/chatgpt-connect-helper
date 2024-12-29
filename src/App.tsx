@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,18 +9,20 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Settings from "./pages/Settings";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+
+// Lazy load pages
+const Index = React.lazy(() => import("./pages/Index"));
+const Login = React.lazy(() => import("./pages/Login"));
+const Settings = React.lazy(() => import("./pages/Settings"));
 
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000,
       retry: 1,
     },
   },
@@ -65,12 +67,19 @@ function App() {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/login" element={<Login />} />
+                <Route 
+                  path="/login" 
+                  element={
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <Login />
+                    </Suspense>
+                  } 
+                />
                 <Route
                   path="/*"
                   element={
                     <ProtectedRoute>
-                      <SidebarProvider defaultOpen={false}>
+                      <SidebarProvider defaultOpen={true}>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
                           <main className="flex-1 relative">
@@ -85,11 +94,13 @@ function App() {
                               </Button>
                               <ThemeToggle />
                             </div>
-                            <Routes>
-                              <Route path="/" element={<Index />} />
-                              <Route path="/chat/:id" element={<Index />} />
-                              <Route path="/settings" element={<Settings />} />
-                            </Routes>
+                            <Suspense fallback={<div>Loading...</div>}>
+                              <Routes>
+                                <Route path="/" element={<Index />} />
+                                <Route path="/chat/:id" element={<Index />} />
+                                <Route path="/settings" element={<Settings />} />
+                              </Routes>
+                            </Suspense>
                           </main>
                         </div>
                       </SidebarProvider>
