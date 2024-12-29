@@ -20,6 +20,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);
+  const [isNearBottom, setIsNearBottom] = useState(true);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -31,24 +32,37 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 
   const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const element = event.currentTarget;
-    const isScrolledToBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 50;
+    const scrollPosition = element.scrollTop + element.clientHeight;
+    const isAtBottom = Math.abs(element.scrollHeight - scrollPosition) < 50;
     
-    if (!isScrolledToBottom) {
+    setIsNearBottom(isAtBottom);
+    if (!isAtBottom) {
       setUserScrolled(true);
-    } else {
-      setUserScrolled(false);
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (lastMessageRef.current && (!userScrolled || isNearBottom)) {
+      lastMessageRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'end'
+      });
     }
   };
 
   useEffect(() => {
-    if (lastMessageRef.current && !userScrolled) {
-      const scrollToBottom = () => {
-        lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      };
-      
+    if (!userScrolled || isNearBottom) {
       scrollToBottom();
-      
-      const observer = new MutationObserver(scrollToBottom);
+    }
+  }, [messages, userScrolled, isNearBottom]);
+
+  useEffect(() => {
+    if (lastMessageRef.current && (!userScrolled || isNearBottom)) {
+      const observer = new MutationObserver(() => {
+        if (!userScrolled || isNearBottom) {
+          scrollToBottom();
+        }
+      });
       
       observer.observe(lastMessageRef.current, {
         childList: true,
@@ -58,7 +72,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 
       return () => observer.disconnect();
     }
-  }, [messages.length, userScrolled]);
+  }, [messages.length, userScrolled, isNearBottom]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
