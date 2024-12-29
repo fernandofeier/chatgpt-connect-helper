@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Conversation {
   id: string;
@@ -41,6 +42,7 @@ export function AppSidebar() {
   const { id: currentConversationId } = useParams();
   const location = useLocation();
   const showHomeButton = conversations.length === 0 && location.pathname !== "/";
+  const isMobile = useIsMobile();
 
   const fetchConversations = async () => {
     const { data, error } = await supabase
@@ -118,11 +120,11 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar>
+    <Sidebar className={`${isMobile ? 'absolute z-50 h-full' : ''}`}>
       <SidebarHeader>
         <Button
           onClick={handleNewChat}
-          className="w-full bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter"
+          className="w-full bg-[#146EF5] hover:bg-[#146EF5]/90 text-white font-inter h-10"
         >
           <Plus className="mr-2" size={16} />
           Nova Conversa

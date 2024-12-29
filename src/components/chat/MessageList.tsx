@@ -19,7 +19,6 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
-  const prevMessagesLengthRef = useRef(messages.length);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -30,21 +29,34 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   useEffect(() => {
-    const shouldAutoScroll = messages.length > prevMessagesLengthRef.current || isLoading;
-    
-    if (shouldAutoScroll && lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (lastMessageRef.current) {
+      const scrollToBottom = () => {
+        lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      };
+      
+      // Initial scroll
+      scrollToBottom();
+      
+      // Set up a mutation observer to watch for content changes
+      const observer = new MutationObserver(scrollToBottom);
+      
+      observer.observe(lastMessageRef.current, {
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+
+      return () => observer.disconnect();
     }
-    
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages, isLoading]);
+  }, [messages.length]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
       const parts = content.split(/(```[\s\S]*?```)/g);
       return parts.map((part, i) => {
         if (part.startsWith('```') && part.endsWith('```')) {
-          const code = part.slice(3, -3);
+          // Remove language identifier and extract pure code
+          const code = part.slice(3, -3).replace(/^[a-z]+\n/, '');
           return (
             <div key={i} className="relative mt-2 mb-2">
               <Button
@@ -84,7 +96,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   return (
-    <ScrollArea className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg" ref={scrollRef}>
+    <ScrollArea className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg overflow-y-auto" ref={scrollRef}>
       {messages.map((message, index) => renderMessage(message, index))}
       {isLoading && (
         <div className="flex items-center space-x-2 mb-4 max-w-[40%]">

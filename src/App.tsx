@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Settings from "./pages/Settings";
@@ -51,8 +53,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
-// Wrap the App component in a function to ensure hooks are used in a component context
 function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <React.StrictMode>
       <ThemeProvider defaultTheme="light" storageKey="app-theme">
@@ -67,11 +70,19 @@ function App() {
                   path="/*"
                   element={
                     <ProtectedRoute>
-                      <SidebarProvider>
+                      <SidebarProvider defaultIsOpen={false}>
                         <div className="flex min-h-screen w-full">
                           <AppSidebar />
                           <main className="flex-1 relative">
-                            <div className="absolute top-4 right-4">
+                            <div className="absolute top-4 right-4 flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="md:hidden"
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                              >
+                                <Menu className="h-6 w-6" />
+                              </Button>
                               <ThemeToggle />
                             </div>
                             <Routes>
