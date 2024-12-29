@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const { toast } = useToast();
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const [userScrolled, setUserScrolled] = useState(false);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -28,16 +29,25 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     });
   };
 
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const element = event.currentTarget;
+    const isScrolledToBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 50;
+    
+    if (!isScrolledToBottom) {
+      setUserScrolled(true);
+    } else {
+      setUserScrolled(false);
+    }
+  };
+
   useEffect(() => {
-    if (lastMessageRef.current) {
+    if (lastMessageRef.current && !userScrolled) {
       const scrollToBottom = () => {
         lastMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
       };
       
-      // Initial scroll
       scrollToBottom();
       
-      // Set up a mutation observer to watch for content changes
       const observer = new MutationObserver(scrollToBottom);
       
       observer.observe(lastMessageRef.current, {
@@ -48,14 +58,13 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 
       return () => observer.disconnect();
     }
-  }, [messages.length]);
+  }, [messages.length, userScrolled]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
       const parts = content.split(/(```[\s\S]*?```)/g);
       return parts.map((part, i) => {
         if (part.startsWith('```') && part.endsWith('```')) {
-          // Remove language identifier and extract pure code
           const code = part.slice(3, -3).replace(/^[a-z]+\n/, '');
           return (
             <div key={i} className="relative mt-2 mb-2">
@@ -96,7 +105,11 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   return (
-    <ScrollArea className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg overflow-y-auto" ref={scrollRef}>
+    <ScrollArea 
+      className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg overflow-y-auto" 
+      ref={scrollRef}
+      onScroll={handleScroll}
+    >
       {messages.map((message, index) => renderMessage(message, index))}
       {isLoading && (
         <div className="flex items-center space-x-2 mb-4 max-w-[40%]">
