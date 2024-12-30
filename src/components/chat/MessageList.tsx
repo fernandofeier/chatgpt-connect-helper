@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy } from "lucide-react";
+import { Copy, ArrowBigDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const [userScrolled, setUserScrolled] = useState(false);
-  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -35,31 +35,31 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     const scrollPosition = element.scrollTop + element.clientHeight;
     const isAtBottom = Math.abs(element.scrollHeight - scrollPosition) < 50;
     
-    setIsNearBottom(isAtBottom);
-    if (!isAtBottom) {
-      setUserScrolled(true);
-    }
+    setShowScrollButton(!isAtBottom);
+    setUserScrolled(!isAtBottom);
   };
 
   const scrollToBottom = () => {
-    if (lastMessageRef.current && (!userScrolled || isNearBottom)) {
+    if (lastMessageRef.current) {
       lastMessageRef.current.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'end'
       });
+      setUserScrolled(false);
+      setShowScrollButton(false);
     }
   };
 
   useEffect(() => {
-    if (!userScrolled || isNearBottom) {
+    if (!userScrolled) {
       scrollToBottom();
     }
-  }, [messages, userScrolled, isNearBottom]);
+  }, [messages, userScrolled]);
 
   useEffect(() => {
-    if (lastMessageRef.current && (!userScrolled || isNearBottom)) {
+    if (lastMessageRef.current && !userScrolled) {
       const observer = new MutationObserver(() => {
-        if (!userScrolled || isNearBottom) {
+        if (!userScrolled) {
           scrollToBottom();
         }
       });
@@ -72,7 +72,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
 
       return () => observer.disconnect();
     }
-  }, [messages.length, userScrolled, isNearBottom]);
+  }, [messages.length, userScrolled]);
 
   const renderMessage = (message: Message, index: number) => {
     const processMessageContent = (content: string) => {
@@ -119,21 +119,33 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   return (
-    <ScrollArea 
-      className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg overflow-y-auto" 
-      ref={scrollRef}
-      onScroll={handleScroll}
-    >
-      {messages.map((message, index) => renderMessage(message, index))}
-      {isLoading && (
-        <div className="flex items-center space-x-2 mb-4 max-w-[40%]">
-          <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg w-24 h-8 relative overflow-hidden">
-            <div className="absolute inset-0">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+    <div className="relative">
+      <ScrollArea 
+        className="h-[calc(100vh-200px)] mb-4 p-4 rounded-lg overflow-y-auto" 
+        ref={scrollRef}
+        onScroll={handleScroll}
+      >
+        {messages.map((message, index) => renderMessage(message, index))}
+        {isLoading && (
+          <div className="flex items-center space-x-2 mb-4 max-w-[40%]">
+            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg w-24 h-8 relative overflow-hidden">
+              <div className="absolute inset-0">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
+      </ScrollArea>
+      {showScrollButton && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="fixed bottom-24 right-8 rounded-full shadow-lg"
+          onClick={scrollToBottom}
+        >
+          <ArrowBigDown className="h-4 w-4" />
+        </Button>
       )}
-    </ScrollArea>
+    </div>
   );
 }
