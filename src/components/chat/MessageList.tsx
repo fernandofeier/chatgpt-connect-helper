@@ -37,8 +37,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     
     setShowScrollButton(!isAtBottom);
     
-    // Only set userScrolled if they're scrolling up
-    if (!isAtBottom && !userScrolled) {
+    if (!isAtBottom) {
       setUserScrolled(true);
     }
   };
@@ -55,16 +54,14 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   useEffect(() => {
-    // Only auto-scroll if user hasn't manually scrolled
-    if (!userScrolled) {
+    if (!userScrolled && lastMessageRef.current) {
       scrollToBottom();
     }
   }, [messages, userScrolled]);
 
   useEffect(() => {
-    if (lastMessageRef.current && !userScrolled) {
+    if (lastMessageRef.current) {
       const observer = new MutationObserver(() => {
-        // Only auto-scroll during streaming if user hasn't manually scrolled
         if (!userScrolled) {
           scrollToBottom();
         }
