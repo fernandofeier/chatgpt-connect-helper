@@ -36,7 +36,11 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     const isAtBottom = Math.abs(element.scrollHeight - scrollPosition) < 50;
     
     setShowScrollButton(!isAtBottom);
-    setUserScrolled(!isAtBottom);
+    
+    // Only set userScrolled if they're scrolling up
+    if (!isAtBottom && !userScrolled) {
+      setUserScrolled(true);
+    }
   };
 
   const scrollToBottom = () => {
@@ -51,6 +55,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   };
 
   useEffect(() => {
+    // Only auto-scroll if user hasn't manually scrolled
     if (!userScrolled) {
       scrollToBottom();
     }
@@ -59,6 +64,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   useEffect(() => {
     if (lastMessageRef.current && !userScrolled) {
       const observer = new MutationObserver(() => {
+        // Only auto-scroll during streaming if user hasn't manually scrolled
         if (!userScrolled) {
           scrollToBottom();
         }
@@ -140,10 +146,10 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="fixed bottom-24 right-8 rounded-full shadow-lg"
+          className="fixed bottom-24 right-8 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
           onClick={scrollToBottom}
         >
-          <ArrowBigDown className="h-4 w-4" />
+          <ArrowBigDown className="h-4 w-4 text-primary-foreground" />
         </Button>
       )}
     </div>
