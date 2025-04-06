@@ -24,7 +24,10 @@ export function ChatInterface({
   const [input, setInput] = useState("");
   const [model, setModel] = useState<AIModel>(selectedModel);
   const { id: conversationId } = useParams<{ id: string }>();
-  const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey, model);
+  
+  // Use the appropriate API key based on selected model
+  const apiKeyToUse = model.startsWith("claude") && claudeApiKey ? claudeApiKey : initialApiKey;
+  const { messages, setMessages, isLoading, handleSubmit } = useChat(apiKeyToUse, model);
 
   useEffect(() => {
     if (conversationId) {

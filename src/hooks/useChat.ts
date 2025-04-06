@@ -19,33 +19,10 @@ export function useChat(initialApiKey: string, model: AIModel) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    // Create a thread in OpenAI with the required beta header
-    const threadResponse = await fetch("https://api.openai.com/v1/threads", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${initialApiKey}`,
-        "OpenAI-Beta": "assistants=v2"  // Added this header
-      },
-    });
-
-    if (!threadResponse.ok) {
-      const errorData = await threadResponse.json();
-      toast({
-        title: "Erro",
-        description: `Falha ao criar thread na OpenAI: ${errorData.error?.message || 'Unknown error'}`,
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    const threadData = await threadResponse.json();
-    const threadId = threadData.id;
-
     const { data, error } = await supabase
       .from("conversations")
       .insert([
-        { user_id: user.id, title, thread_id: threadId }
+        { user_id: user.id, title, thread_id: null }
       ])
       .select()
       .single();
@@ -96,7 +73,6 @@ export function useChat(initialApiKey: string, model: AIModel) {
     setIsLoading(true);
 
     let currentConversationId = conversationId;
-    let threadId: string | null = null;
 
     if (!currentConversationId) {
       currentConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
@@ -104,15 +80,6 @@ export function useChat(initialApiKey: string, model: AIModel) {
         setIsLoading(false);
         return;
       }
-    } else {
-      // Get thread_id for existing conversation
-      const { data: conversationData } = await supabase
-        .from("conversations")
-        .select("thread_id")
-        .eq("id", currentConversationId)
-        .single();
-      
-      threadId = conversationData?.thread_id || null;
     }
 
     await saveMessage(userMessage, currentConversationId);
@@ -121,38 +88,49 @@ export function useChat(initialApiKey: string, model: AIModel) {
       // Determine which API to use based on the selected model
       const usingClaudeAPI = isClaudeModel(model);
       
-      let endpoint = "https://api.openai.com/v1/chat/completions";
+      let endpoint = usingClaudeAPI
+        ? "https://api.anthropic.com/v1/messages"
+        : "https://api.openai.com/v1/chat/completions";
+      
       let headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${initialApiKey}`
       };
       
-      if (!usingClaudeAPI) {
-        // Add OpenAI specific headers
-        headers["OpenAI-Beta"] = "assistants=v2";
-      }
-      
-      let requestBody: Record<string, any> = {
-        model: model,
-        messages: [...messages, userMessage],
-        stream: true,
-      };
-      
-      // If using Claude API, adjust endpoint, headers and request format
       if (usingClaudeAPI) {
-        endpoint = "https://api.anthropic.com/v1/messages";
         headers = {
-          "Content-Type": "application/json",
+          ...headers,
           "anthropic-version": "2023-06-01",
           "x-api-key": initialApiKey
         };
-        
-        // Reformat messages for Claude API
+      } else {
+        headers = {
+          ...headers,
+          "Authorization": `Bearer ${initialApiKey}`
+        };
+      }
+      
+      let requestBody: Record<string, any> = {};
+      
+      if (usingClaudeAPI) {
+        // Format request body for Claude API
         requestBody = {
           model: model,
-          messages: [...messages, userMessage],
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
           stream: true,
           max_tokens: 4096
+        };
+      } else {
+        // Format request body for OpenAI API
+        requestBody = {
+          model: model,
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
+          stream: true,
         };
       }
 
@@ -196,12 +174,14 @@ export function useChat(initialApiKey: string, model: AIModel) {
                   content = data.choices[0]?.delta?.content || '';
                 }
                 
-                assistantMessage.content += content;
-                setMessages(prev => 
-                  prev.map((msg, i) => 
-                    i === prev.length - 1 ? assistantMessage : msg
-                  )
-                );
+                if (content) {
+                  assistantMessage.content += content;
+                  setMessages(prev => 
+                    prev.map((msg, i) => 
+                      i === prev.length - 1 ? assistantMessage : msg
+                    )
+                  );
+                }
               } catch (e) {
                 console.error('Error parsing chunk:', e);
               }
