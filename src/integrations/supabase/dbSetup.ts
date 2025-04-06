@@ -15,7 +15,7 @@ export const setupDatabase = async () => {
       
       // Try to create the column if it doesn't exist
       const { error: alterError } = await supabase
-        .rpc('add_image_url_column_if_not_exists');
+        .rpc('add_image_url_column_if_not_exists', {});
       
       if (alterError) {
         console.error('Error adding image_url column:', alterError);

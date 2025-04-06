@@ -22,15 +22,20 @@ export const setupChatImagesBucket = async () => {
       
       console.log('Successfully created chat_images bucket');
       
-      // Set up bucket public policy
-      const { error: policyError } = await supabase.storage.from('chat_images').createPolicy('Public Read Policy', {
-        type: 'read',
-        name: 'Public Read Policy',
-        definition: "true" // Make all files readable by anyone
-      });
-      
-      if (policyError) {
-        console.error('Error creating public read policy:', policyError);
+      // Set public policy on the bucket through RPC instead of direct createPolicy
+      // This is a workaround since createPolicy method doesn't exist
+      try {
+        // We'll make a direct query to set bucket to public
+        const { error: policyError } = await supabase.rpc('set_bucket_public', { 
+          bucket_name: 'chat_images'
+        });
+        
+        if (policyError) {
+          console.error('Error setting bucket to public:', policyError);
+        }
+      } catch (policyError) {
+        console.error('Error setting bucket to public:', policyError);
+        console.log('Continuing without setting bucket policy. You may need to set it manually in the Supabase dashboard.');
       }
     }
   } catch (error) {
