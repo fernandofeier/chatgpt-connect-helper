@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useChat } from "@/hooks/useChat";
 import { Message } from "@/types/chat";
 import { supabase } from "@/integrations/supabase/client";
 import { ModelSelector, AIModel } from "@/components/chat/ModelSelector";
+import { MessageList } from "@/components/chat/MessageList";
+import { MessageInput } from "@/components/chat/MessageInput";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
@@ -23,10 +23,13 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const [model, setModel] = useState<AIModel>(selectedModel);
+  const [pastedImage, setPastedImage] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   const { id: conversationId } = useParams<{ id: string }>();
   
   // Use the appropriate API key based on selected model
   const apiKeyToUse = model.startsWith("claude") && claudeApiKey ? claudeApiKey : initialApiKey;
+  
   const { messages, setMessages, isLoading, handleSubmit } = useChat(apiKeyToUse, model);
 
   useEffect(() => {
@@ -42,6 +45,7 @@ export function ChatInterface({
           const formattedMessages: Message[] = data.map((msg) => ({
             role: msg.role as "user" | "assistant",
             content: msg.content,
+            image_url: msg.image_url,
           }));
           setMessages(formattedMessages);
         }
@@ -51,23 +55,26 @@ export function ChatInterface({
     }
   }, [conversationId, setMessages]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
+  // Create image preview when an image is pasted
+  useEffect(() => {
+    if (pastedImage) {
+      const imageUrl = URL.createObjectURL(pastedImage);
+      setPreviewImage(imageUrl);
+      return () => {
+        URL.revokeObjectURL(imageUrl);
+      };
+    } else {
+      setPreviewImage(null);
+    }
+  }, [pastedImage]);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() && !pastedImage) return;
 
-    await handleSubmit(input, conversationId || null);
+    await handleSubmit(input, conversationId || null, pastedImage);
     setInput("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleFormSubmit(e as unknown as React.FormEvent);
-    }
+    setPastedImage(null);
   };
 
   const handleModelChange = (newModel: AIModel) => {
@@ -84,54 +91,19 @@ export function ChatInterface({
         <ModelSelector model={model} onModelChange={handleModelChange} />
       </div>
       
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4 p-4 rounded-lg border">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
-            <p>No messages yet. Start a conversation!</p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${
-                message.role === "user"
-                  ? "bg-blue-100 ml-12"
-                  : "bg-gray-100 mr-12"
-              }`}
-            >
-              <div className="font-semibold mb-1">
-                {message.role === "user" ? "You" : "AI"}
-              </div>
-              <div className="whitespace-pre-wrap">{message.content}</div>
-            </div>
-          ))
-        )}
-        {isLoading && (
-          <div className="p-4 rounded-lg bg-gray-100 mr-12">
-            <div className="font-semibold mb-1">AI</div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-300"></div>
-            </div>
-          </div>
-        )}
+      <div className="flex-1 overflow-hidden mb-4">
+        <MessageList messages={messages} isLoading={isLoading} />
       </div>
 
-      <form onSubmit={handleFormSubmit} className="flex gap-2">
-        <Textarea
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
-          className="flex-1 resize-none"
-          rows={3}
-          disabled={isLoading}
-        />
-        <Button type="submit" disabled={isLoading || !input.trim()}>
-          Send
-        </Button>
-      </form>
+      <MessageInput 
+        input={input} 
+        setInput={setInput} 
+        isLoading={isLoading} 
+        onSubmit={handleFormSubmit}
+        pastedImage={pastedImage}
+        setPastedImage={setPastedImage}
+        previewImage={previewImage}
+      />
     </div>
   );
 }
