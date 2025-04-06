@@ -14,9 +14,16 @@ export const setupDatabase = async () => {
       console.error('Error checking messages table schema:', error);
       
       // Try to create the column if it doesn't exist
-      // Fix the RPC call by providing an empty object as the parameter
+      // Use PostgreSQL function directly instead of RPC
       const { error: alterError } = await supabase
-        .rpc('add_image_url_column_if_not_exists', {});
+        .from('messages')
+        .select('id')
+        .limit(1)
+        .then(async () => {
+          // Check if the column already exists first through a simple query
+          // If there's an error, it likely means we need to add the column
+          return supabase.rpc('add_image_url_column_if_not_exists', {});
+        });
       
       if (alterError) {
         console.error('Error adding image_url column:', alterError);

@@ -15,26 +15,28 @@ export const setupChatImagesBucket = async () => {
     
     // If bucket doesn't exist, create it
     if (!chatImagesBucket) {
-      const { error: createError } = await supabase.storage.createBucket('chat_images', {
-        public: true,
-        fileSizeLimit: 5242880, // 5MB limit
-      });
-      
-      if (createError) {
-        console.error('Error creating chat_images bucket:', createError);
-        return;
-      }
-      
-      console.log('Successfully created chat_images bucket');
-      
-      // Set public policy on the bucket through RPC instead of direct createPolicy
-      // This is a workaround since createPolicy method doesn't exist
       try {
-        // We'll use console log instead of trying to call a non-existent method
+        const { error: createError } = await supabase.storage.createBucket('chat_images', {
+          public: true,
+          fileSizeLimit: 5242880, // 5MB limit
+        });
+        
+        if (createError) {
+          console.error('Error creating chat_images bucket:', createError);
+          return;
+        }
+        
+        console.log('Successfully created chat_images bucket');
+        
+        // Note: Setting bucket policies needs to be done in the Supabase dashboard
+        // or through SQL directly, as the JS client doesn't support this operation
         console.log('Note: You may need to set bucket policy manually in the Supabase dashboard');
-      } catch (policyError) {
-        console.error('Error setting bucket to public:', policyError);
-        console.log('Continuing without setting bucket policy. You may need to set it manually in the Supabase dashboard.');
+      } catch (error) {
+        console.error('Error creating chat_images bucket:', error);
+        
+        // This could happen due to permissions issues
+        // Let the user know they may need to create the bucket manually
+        console.log('You may need to create the chat_images bucket manually in the Supabase dashboard');
       }
     }
   } catch (error) {
