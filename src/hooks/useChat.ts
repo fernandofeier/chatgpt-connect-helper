@@ -40,40 +40,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
     return data.id;
   };
 
-  const uploadImage = async (file: File): Promise<string | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('chat_images')
-        .upload(filePath, file);
-      
-      if (uploadError) {
-        throw uploadError;
-      }
-      
-      const { data: urlData } = supabase.storage
-        .from('chat_images')
-        .getPublicUrl(filePath);
-      
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast({
-        title: "Erro",
-        description: "Falha ao fazer upload da imagem",
-        variant: "destructive",
-      });
-      return null;
-    }
-  };
-
-  const saveMessage = async (message: Message, conversationId: string, imageUrl?: string | null) => {
+  const saveMessage = async (message: Message, conversationId: string) => {
     const { error } = await supabase
       .from("messages")
       .insert([
@@ -81,7 +48,6 @@ export function useChat(initialApiKey: string, model: AIModel) {
           conversation_id: conversationId,
           role: message.role,
           content: message.content,
-          image_url: imageUrl || null
         }
       ]);
 
@@ -94,28 +60,17 @@ export function useChat(initialApiKey: string, model: AIModel) {
     }
   };
 
-  const handleSubmit = async (input: string, conversationId: string | null, imageFile?: File | null) => {
+  const handleSubmit = async (input: string, conversationId: string | null, imageFile?: File) => {
     if (!input.trim() && !imageFile) return;
 
-    setIsLoading(true);
-    let imageUrl: string | null = null;
-    
-    if (imageFile) {
-      imageUrl = await uploadImage(imageFile);
-    }
-
     let messageContent = input;
-    if (imageUrl) {
-      messageContent = input.trim() ? input : "Analise esta imagem:";
+    if (imageFile) {
+      messageContent = `[Imagem: ${imageFile.name}]\n${input}`;
     }
 
-    const userMessage: Message = { 
-      role: "user", 
-      content: messageContent,
-      imageUrl: imageUrl || undefined
-    };
-    
+    const userMessage: Message = { role: "user", content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
 
     let currentConversationId = conversationId;
 
@@ -127,7 +82,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
       }
     }
 
-    await saveMessage(userMessage, currentConversationId, imageUrl);
+    await saveMessage(userMessage, currentConversationId);
 
     try {
       // Determine which API to use based on the selected model
@@ -160,45 +115,21 @@ export function useChat(initialApiKey: string, model: AIModel) {
         // Format request body for Claude API
         requestBody = {
           model: model,
-          messages: [...messages, userMessage].map(msg => {
-            // Claude doesn't support images yet in this implementation
-            return {
-              role: msg.role,
-              content: msg.content
-            };
-          }),
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
           stream: true,
           max_tokens: 4096
         };
       } else {
         // Format request body for OpenAI API
-        const formattedMessages = [...messages, userMessage].map(msg => {
-          if (msg.imageUrl && msg.role === "user") {
-            // For OpenAI with image
-            return {
-              role: msg.role,
-              content: [
-                { type: "text", text: msg.content },
-                { 
-                  type: "image_url", 
-                  image_url: {
-                    url: msg.imageUrl
-                  }
-                }
-              ]
-            };
-          } else {
-            // Regular message
-            return { 
-              role: msg.role,
-              content: msg.content
-            };
-          }
-        });
-        
         requestBody = {
           model: model,
-          messages: formattedMessages,
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
           stream: true,
         };
       }

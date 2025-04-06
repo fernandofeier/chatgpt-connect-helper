@@ -1,9 +1,7 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect, useRef } from "react";
 
 interface MessageInputProps {
   input: string;
@@ -14,7 +12,6 @@ interface MessageInputProps {
 
 export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -37,36 +34,6 @@ export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageIn
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.indexOf('image') !== -1) {
-          e.preventDefault();
-          
-          // Get the image file from clipboard
-          const file = items[i].getAsFile();
-          
-          if (file) {
-            // Dispatch a custom event with the file data
-            const pasteEvent = new CustomEvent('image-pasted', { 
-              detail: { file },
-              bubbles: true 
-            });
-            e.currentTarget.dispatchEvent(pasteEvent);
-            
-            toast({
-              title: "Imagem colada",
-              description: "Imagem da área de transferência adicionada",
-            });
-          }
-          break;
-        }
-      }
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Textarea
@@ -74,7 +41,6 @@ export function MessageInput({ input, setInput, isLoading, onSubmit }: MessageIn
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
-        onPaste={handlePaste}
         placeholder="Digite sua mensagem..."
         disabled={isLoading}
         className="min-h-[48px] max-h-[200px] resize-none rounded-xl font-inter p-3"

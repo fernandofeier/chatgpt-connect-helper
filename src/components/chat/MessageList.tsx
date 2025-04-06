@@ -1,11 +1,14 @@
-
 import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, ArrowBigDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
-import { Message } from "@/types/chat";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -113,15 +116,6 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'min-w-[60%] max-w-[85%] md:max-w-[80%]' : 'max-w-[85%] md:max-w-[40%]'}`
         } font-inter text-[14px] break-words`}
       >
-        {message.imageUrl && (
-          <div className="mb-2">
-            <img 
-              src={message.imageUrl} 
-              alt="Imagem enviada" 
-              className="rounded-md max-h-[200px] object-contain"
-            />
-          </div>
-        )}
         {processMessageContent(message.content)}
       </div>
     );
