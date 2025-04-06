@@ -10,21 +10,32 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchApiKey = async () => {
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("openai_api_key, claude_api_key")
-        .single();
+    const fetchApiKeys = async () => {
+      try {
+        const { data: settings, error } = await supabase
+          .from("user_settings")
+          .select("openai_api_key, claude_api_key")
+          .single();
 
-      if (!settings?.openai_api_key) {
+        if (error) {
+          console.error("Error fetching API keys:", error);
+          navigate("/settings");
+          return;
+        }
+
+        if (!settings?.openai_api_key) {
+          navigate("/settings");
+        } else {
+          setApiKey(settings.openai_api_key);
+          setClaudeApiKey(settings.claude_api_key || null);
+        }
+      } catch (error) {
+        console.error("Error in fetchApiKeys:", error);
         navigate("/settings");
-      } else {
-        setApiKey(settings.openai_api_key);
-        setClaudeApiKey(settings.claude_api_key || null);
       }
     };
 
-    fetchApiKey();
+    fetchApiKeys();
   }, [navigate]);
 
   if (!apiKey) {
@@ -33,7 +44,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <ChatInterface initialApiKey={apiKey} />
+      <ChatInterface initialApiKey={apiKey} claudeApiKey={claudeApiKey} />
     </div>
   );
 };

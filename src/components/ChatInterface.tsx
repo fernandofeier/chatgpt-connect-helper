@@ -1,114 +1,131 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "./ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useParams } from 'react-router-dom';
-import { MessageList } from "./chat/MessageList";
-import { MessageInput } from "./chat/MessageInput";
+import { useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useChat } from "@/hooks/useChat";
-import { Message, MessagePayload } from "@/types/chat";
-import { ModelSelector, AIModel } from "./chat/ModelSelector";
-import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { Message } from "@/types/chat";
+import { supabase } from "@/integrations/supabase/client";
+import { ModelSelector, AIModel } from "@/components/chat/ModelSelector";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
+  selectedModel?: AIModel;
+  onModelChange?: (model: AIModel) => void;
 }
 
-export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
+export function ChatInterface({ 
+  initialApiKey, 
+  selectedModel = "gpt-4o", 
+  onModelChange 
+}: ChatInterfaceProps) {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<AIModel>("gpt-4o-mini");
-  const { id: existingConversationId } = useParams();
-  const { toast } = useToast();
+  const [model, setModel] = useState<AIModel>(selectedModel);
+  const { id: conversationId } = useParams<{ id: string }>();
   const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey, model);
 
   useEffect(() => {
-    if (!existingConversationId) {
-      setMessages([]);
-      return;
-    }
+    if (conversationId) {
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", conversationId)
+          .order("created_at", { ascending: true });
 
-    const loadConversation = async () => {
-      const { data: messagesData, error } = await supabase
-        .from("messages")
-        .select("role, content")
-        .eq("conversation_id", existingConversationId)
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        toast({
-          title: "Erro",
-          description: "Falha ao carregar mensagens",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (messagesData) {
-        setMessages(messagesData as Message[]);
-      }
-    };
-
-    loadConversation();
-  }, [existingConversationId, setMessages, toast]);
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload: RealtimePostgresChangesPayload<MessagePayload>) => {
-          const newMessage = payload.new as MessagePayload | null;
-          if (newMessage && newMessage.conversation_id === existingConversationId) {
-            const fetchMessages = async () => {
-              const { data: messagesData, error } = await supabase
-                .from("messages")
-                .select("role, content")
-                .eq("conversation_id", existingConversationId)
-                .order("created_at", { ascending: true });
-
-              if (!error && messagesData) {
-                setMessages(messagesData as Message[]);
-              }
-            };
-            fetchMessages();
-          }
+        if (data) {
+          const formattedMessages: Message[] = data.map((msg) => ({
+            role: msg.role as "user" | "assistant",
+            content: msg.content,
+          }));
+          setMessages(formattedMessages);
         }
-      )
-      .subscribe();
+      };
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [existingConversationId, setMessages]);
+      fetchMessages();
+    }
+  }, [conversationId, setMessages]);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(input, existingConversationId);
+    if (!input.trim()) return;
+
+    await handleSubmit(input, conversationId || null);
     setInput("");
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleFormSubmit(e as unknown as React.FormEvent);
+    }
+  };
+
+  const handleModelChange = (newModel: AIModel) => {
+    setModel(newModel);
+    if (onModelChange) {
+      onModelChange(newModel);
+    }
+  };
+
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-none border-0">
-      <CardContent className="p-0">
-        <div className="mb-4 p-4">
-          <ModelSelector model={model} onModelChange={setModel} />
-        </div>
-        <MessageList messages={messages} isLoading={isLoading} />
-        <div className="sticky bottom-0 bg-background px-2 pb-2 md:px-4 md:pb-4">
-          <MessageInput
-            input={input}
-            setInput={setInput}
-            isLoading={isLoading}
-            onSubmit={onSubmit}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Chat</h1>
+        <ModelSelector model={model} onModelChange={handleModelChange} />
+      </div>
+      
+      <div className="flex-1 overflow-y-auto mb-4 space-y-4 p-4 rounded-lg border">
+        {messages.length === 0 ? (
+          <div className="text-center text-gray-500 mt-8">
+            <p>No messages yet. Start a conversation!</p>
+          </div>
+        ) : (
+          messages.map((message, index) => (
+            <div
+              key={index}
+              className={`p-4 rounded-lg ${
+                message.role === "user"
+                  ? "bg-blue-100 ml-12"
+                  : "bg-gray-100 mr-12"
+              }`}
+            >
+              <div className="font-semibold mb-1">
+                {message.role === "user" ? "You" : "AI"}
+              </div>
+              <div className="whitespace-pre-wrap">{message.content}</div>
+            </div>
+          ))
+        )}
+        {isLoading && (
+          <div className="p-4 rounded-lg bg-gray-100 mr-12">
+            <div className="font-semibold mb-1">AI</div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
+              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-300"></div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={handleFormSubmit} className="flex gap-2">
+        <Textarea
+          value={input}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message..."
+          className="flex-1 resize-none"
+          rows={3}
+          disabled={isLoading}
+        />
+        <Button type="submit" disabled={isLoading || !input.trim()}>
+          Send
+        </Button>
+      </form>
+    </div>
   );
 }

@@ -17,24 +17,33 @@ const Settings = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/login");
-        return;
-      }
-      
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("openai_api_key, claude_api_key")
-        .single();
-      
-      if (settings) {
-        if (settings.openai_api_key) {
-          setOpenaiApiKey(settings.openai_api_key);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate("/login");
+          return;
         }
-        if (settings.claude_api_key) {
-          setClaudeApiKey(settings.claude_api_key);
+        
+        const { data: settings, error } = await supabase
+          .from("user_settings")
+          .select("openai_api_key, claude_api_key")
+          .single();
+        
+        if (error) {
+          console.error("Error fetching settings:", error);
+          return;
         }
+        
+        if (settings) {
+          if (settings.openai_api_key) {
+            setOpenaiApiKey(settings.openai_api_key);
+          }
+          if (settings.claude_api_key) {
+            setClaudeApiKey(settings.claude_api_key);
+          }
+        }
+      } catch (error) {
+        console.error("Error in checkSession:", error);
       }
     };
 
@@ -44,13 +53,40 @@ const Settings = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      
+      if (!userId) {
+        throw new Error("User ID not found");
+      }
+      
+      // Check if the user already has settings
+      const { data: existingSettings } = await supabase
         .from("user_settings")
-        .update({ 
-          openai_api_key: openaiApiKey,
-          claude_api_key: claudeApiKey 
-        })
-        .eq("user_id", (await supabase.auth.getUser()).data.user?.id);
+        .select("user_id")
+        .eq("user_id", userId)
+        .single();
+      
+      let error;
+      
+      if (existingSettings) {
+        // Update existing settings
+        ({ error } = await supabase
+          .from("user_settings")
+          .update({ 
+            openai_api_key: openaiApiKey,
+            claude_api_key: claudeApiKey 
+          })
+          .eq("user_id", userId));
+      } else {
+        // Insert new settings
+        ({ error } = await supabase
+          .from("user_settings")
+          .insert({ 
+            user_id: userId,
+            openai_api_key: openaiApiKey,
+            claude_api_key: claudeApiKey 
+          }));
+      }
 
       if (error) throw error;
 
@@ -64,6 +100,7 @@ const Settings = () => {
         description: "Failed to save settings. Please try again.",
         variant: "destructive",
       });
+      console.error("Error saving settings:", error);
     } finally {
       setLoading(false);
     }

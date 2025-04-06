@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Message } from "@/types/chat";
+import { Message, ApiProvider } from "@/types/chat";
 import { AIModel } from "@/components/chat/ModelSelector";
 
 export function useChat(initialApiKey: string, model: AIModel) {
@@ -122,13 +122,17 @@ export function useChat(initialApiKey: string, model: AIModel) {
       const usingClaudeAPI = isClaudeModel(model);
       
       let endpoint = "https://api.openai.com/v1/chat/completions";
-      let headers = {
+      let headers: Record<string, string> = {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${initialApiKey}`,
-        "OpenAI-Beta": "assistants=v2"
+        "Authorization": `Bearer ${initialApiKey}`
       };
       
-      let requestBody = {
+      if (!usingClaudeAPI) {
+        // Add OpenAI specific headers
+        headers["OpenAI-Beta"] = "assistants=v2";
+      }
+      
+      let requestBody: Record<string, any> = {
         model: model,
         messages: [...messages, userMessage],
         stream: true,
@@ -139,8 +143,8 @@ export function useChat(initialApiKey: string, model: AIModel) {
         endpoint = "https://api.anthropic.com/v1/messages";
         headers = {
           "Content-Type": "application/json",
-          "x-api-key": initialApiKey,
-          "anthropic-version": "2023-06-01"
+          "anthropic-version": "2023-06-01",
+          "x-api-key": initialApiKey
         };
         
         // Reformat messages for Claude API
