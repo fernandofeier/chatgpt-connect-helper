@@ -1,15 +1,19 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Message } from "@/types/chat";
-import { OpenAIModel } from "@/components/chat/ModelSelector";
+import { AIModel } from "@/components/chat/ModelSelector";
 
-export function useChat(initialApiKey: string, model: OpenAIModel) {
+export function useChat(initialApiKey: string, model: AIModel) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Determine which API provider to use based on model name
+  const isClaudeModel = (modelName: string) => modelName.startsWith('claude');
 
   const createNewConversation = async (title: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -114,22 +118,48 @@ export function useChat(initialApiKey: string, model: OpenAIModel) {
     await saveMessage(userMessage, currentConversationId);
 
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
+      // Determine which API to use based on the selected model
+      const usingClaudeAPI = isClaudeModel(model);
+      
+      let endpoint = "https://api.openai.com/v1/chat/completions";
+      let headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${initialApiKey}`,
+        "OpenAI-Beta": "assistants=v2"
+      };
+      
+      let requestBody = {
+        model: model,
+        messages: [...messages, userMessage],
+        stream: true,
+      };
+      
+      // If using Claude API, adjust endpoint, headers and request format
+      if (usingClaudeAPI) {
+        endpoint = "https://api.anthropic.com/v1/messages";
+        headers = {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${initialApiKey}`,
-          "OpenAI-Beta": "assistants=v2"
-        },
-        body: JSON.stringify({
+          "x-api-key": initialApiKey,
+          "anthropic-version": "2023-06-01"
+        };
+        
+        // Reformat messages for Claude API
+        requestBody = {
           model: model,
           messages: [...messages, userMessage],
           stream: true,
-        }),
+          max_tokens: 4096
+        };
+      }
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        throw new Error("Erro na chamada da API");
+        throw new Error(usingClaudeAPI ? "Erro na chamada da API Claude" : "Erro na chamada da API OpenAI");
       }
 
       const reader = response.body?.getReader();
@@ -149,7 +179,19 @@ export function useChat(initialApiKey: string, model: OpenAIModel) {
             if (line.startsWith('data: ') && line !== 'data: [DONE]') {
               try {
                 const data = JSON.parse(line.slice(6));
-                const content = data.choices[0]?.delta?.content || '';
+                
+                // Handle different formats for OpenAI vs Claude
+                let content = '';
+                if (usingClaudeAPI) {
+                  // Claude stream format
+                  if (data.type === 'content_block_delta' && data.delta?.text) {
+                    content = data.delta.text;
+                  }
+                } else {
+                  // OpenAI stream format
+                  content = data.choices[0]?.delta?.content || '';
+                }
+                
                 assistantMessage.content += content;
                 setMessages(prev => 
                   prev.map((msg, i) => 

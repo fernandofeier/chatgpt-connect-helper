@@ -1,3 +1,4 @@
+
 export interface Message {
   role: "user" | "assistant";
   content: string;
@@ -9,3 +10,5 @@ export interface MessagePayload {
   content: string;
   created_at: string;
 }
+
+export type ApiProvider = "openai" | "claude";

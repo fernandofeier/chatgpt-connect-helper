@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "./ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +8,7 @@ import { MessageList } from "./chat/MessageList";
 import { MessageInput } from "./chat/MessageInput";
 import { useChat } from "@/hooks/useChat";
 import { Message, MessagePayload } from "@/types/chat";
-import { ModelSelector, OpenAIModel } from "./chat/ModelSelector";
+import { ModelSelector, AIModel } from "./chat/ModelSelector";
 import { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 
 interface ChatInterfaceProps {
@@ -16,7 +17,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ initialApiKey }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
-  const [model, setModel] = useState<OpenAIModel>("gpt-4o-mini");
+  const [model, setModel] = useState<AIModel>("gpt-4o-mini");
   const { id: existingConversationId } = useParams();
   const { toast } = useToast();
   const { messages, setMessages, isLoading, handleSubmit } = useChat(initialApiKey, model);
