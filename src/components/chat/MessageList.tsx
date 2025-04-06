@@ -1,11 +1,14 @@
-
 import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Copy, ArrowBigDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ReactMarkdown from 'react-markdown';
 import { useToast } from "@/hooks/use-toast";
-import { Message } from "@/types/chat";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -75,17 +78,6 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   }, [messages.length, userScrolled]);
 
   const renderMessage = (message: Message, index: number) => {
-    // Display image if present
-    const imageElement = message.image_url && (
-      <div className="mb-2">
-        <img 
-          src={message.image_url} 
-          alt="Uploaded content" 
-          className="rounded-md max-h-60 object-contain"
-        />
-      </div>
-    );
-    
     const processMessageContent = (content: string) => {
       const parts = content.split(/(```[\s\S]*?```)/g);
       return parts.map((part, i) => {
@@ -124,7 +116,6 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             : `bg-gray-100 dark:bg-gray-800 text-foreground ${hasCodeBlock ? 'min-w-[60%] max-w-[85%] md:max-w-[80%]' : 'max-w-[85%] md:max-w-[40%]'}`
         } font-inter text-[14px] break-words`}
       >
-        {imageElement}
         {processMessageContent(message.content)}
       </div>
     );

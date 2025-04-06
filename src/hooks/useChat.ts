@@ -1,10 +1,10 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Message, ApiProvider } from "@/types/chat";
 import { AIModel } from "@/components/chat/ModelSelector";
-import { v4 as uuidv4 } from "uuid";
 
 export function useChat(initialApiKey: string, model: AIModel) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,39 +14,6 @@ export function useChat(initialApiKey: string, model: AIModel) {
   
   // Determine which API provider to use based on model name
   const isClaudeModel = (modelName: string) => modelName.startsWith('claude');
-
-  const uploadImage = async (file: File): Promise<string | null> => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${uuidv4()}.${fileExt}`;
-      
-      const { data, error } = await supabase
-        .storage
-        .from('chat_images')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        throw error;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase
-        .storage
-        .from('chat_images')
-        .getPublicUrl(data.path);
-
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      return null;
-    }
-  };
 
   const createNewConversation = async (title: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,17 +40,16 @@ export function useChat(initialApiKey: string, model: AIModel) {
     return data.id;
   };
 
-  const saveMessage = async (message: Message, conversationId: string, imageUrl?: string) => {
-    const messageToSave = {
-      conversation_id: conversationId,
-      role: message.role,
-      content: message.content,
-      ...(imageUrl && { image_url: imageUrl })
-    };
-
+  const saveMessage = async (message: Message, conversationId: string) => {
     const { error } = await supabase
       .from("messages")
-      .insert([messageToSave]);
+      .insert([
+        {
+          conversation_id: conversationId,
+          role: message.role,
+          content: message.content,
+        }
+      ]);
 
     if (error) {
       toast({
@@ -94,47 +60,29 @@ export function useChat(initialApiKey: string, model: AIModel) {
     }
   };
 
-  const handleSubmit = async (input: string, conversationId: string | null, imageFile?: File | null) => {
-    let messageContent = input.trim();
-    if (!messageContent && !imageFile) return;
+  const handleSubmit = async (input: string, conversationId: string | null, imageFile?: File) => {
+    if (!input.trim() && !imageFile) return;
 
-    setIsLoading(true);
-    let imageUrl: string | null = null;
-    
-    // Upload image if present
+    let messageContent = input;
     if (imageFile) {
-      imageUrl = await uploadImage(imageFile);
-      if (!imageUrl) {
-        toast({
-          title: "Erro",
-          description: "Falha ao enviar imagem",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
+      messageContent = `[Imagem: ${imageFile.name}]\n${input}`;
     }
 
-    const userMessage: Message = { 
-      role: "user", 
-      content: messageContent,
-      ...(imageUrl && { image_url: imageUrl })
-    };
-    
+    const userMessage: Message = { role: "user", content: messageContent };
     setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
 
     let currentConversationId = conversationId;
 
     if (!currentConversationId) {
-      const title = messageContent ? messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : "") : "Nova conversa com imagem";
-      currentConversationId = await createNewConversation(title);
+      currentConversationId = await createNewConversation(messageContent.slice(0, 50) + (messageContent.length > 50 ? "..." : ""));
       if (!currentConversationId) {
         setIsLoading(false);
         return;
       }
     }
 
-    await saveMessage(userMessage, currentConversationId, imageUrl || undefined);
+    await saveMessage(userMessage, currentConversationId);
 
     try {
       // Determine which API to use based on the selected model
@@ -165,63 +113,23 @@ export function useChat(initialApiKey: string, model: AIModel) {
       
       if (usingClaudeAPI) {
         // Format request body for Claude API
-        const messagesForApi = [...messages, userMessage].map(msg => {
-          const content: any[] = [{ type: "text", text: msg.content }];
-          
-          // Add image if present
-          if (msg.image_url) {
-            content.unshift({
-              type: "image",
-              source: {
-                type: "url",
-                url: msg.image_url
-              }
-            });
-          }
-          
-          return { 
-            role: msg.role,
-            content
-          };
-        });
-        
         requestBody = {
           model: model,
-          messages: messagesForApi,
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
           stream: true,
           max_tokens: 4096
         };
       } else {
         // Format request body for OpenAI API
-        const messagesForApi = [...messages, userMessage].map(msg => {
-          // For OpenAI, if there's an image, we need to format the content as an array
-          if (msg.image_url) {
-            return {
-              role: msg.role,
-              content: [
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: msg.image_url
-                  }
-                },
-                {
-                  type: "text",
-                  text: msg.content
-                }
-              ]
-            };
-          }
-          
-          return { 
-            role: msg.role,
-            content: msg.content
-          };
-        });
-        
         requestBody = {
           model: model,
-          messages: messagesForApi,
+          messages: [...messages, userMessage].map(msg => ({ 
+            role: msg.role,
+            content: msg.content
+          })),
           stream: true,
         };
       }
