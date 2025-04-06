@@ -22,6 +22,7 @@ export const setupDatabase = async () => {
         .then(async () => {
           // Check if the column already exists first through a simple query
           // If there's an error, it likely means we need to add the column
+          // Call the RPC function without parameters as it doesn't expect any
           return supabase.rpc('add_image_url_column_if_not_exists');
         });
       

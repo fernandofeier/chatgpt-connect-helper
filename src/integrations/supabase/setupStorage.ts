@@ -23,6 +23,13 @@ export const setupChatImagesBucket = async () => {
         
         if (createError) {
           console.error('Error creating chat_images bucket:', createError);
+          
+          // Check if it's a permissions/RLS error
+          if (createError.message && createError.message.includes('row-level security policy')) {
+            console.log('This appears to be a Row Level Security (RLS) policy error.');
+            console.log('Please ensure the storage bucket can be created through the Supabase dashboard.');
+          }
+          
           return;
         }
         
