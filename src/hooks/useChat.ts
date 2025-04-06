@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -166,7 +165,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
       
       if (usingClaudeAPI) {
         // Format request body for Claude API
-        const messages = [...messages, userMessage].map(msg => {
+        const messagesForApi = [...messages, userMessage].map(msg => {
           const content: any[] = [{ type: "text", text: msg.content }];
           
           // Add image if present
@@ -188,13 +187,13 @@ export function useChat(initialApiKey: string, model: AIModel) {
         
         requestBody = {
           model: model,
-          messages,
+          messages: messagesForApi,
           stream: true,
           max_tokens: 4096
         };
       } else {
         // Format request body for OpenAI API
-        const messages = [...messages, userMessage].map(msg => {
+        const messagesForApi = [...messages, userMessage].map(msg => {
           // For OpenAI, if there's an image, we need to format the content as an array
           if (msg.image_url) {
             return {
@@ -222,7 +221,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
         
         requestBody = {
           model: model,
-          messages,
+          messages: messagesForApi,
           stream: true,
         };
       }

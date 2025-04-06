@@ -1,8 +1,10 @@
+
 import React, { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { LoadingSpinner } from "./LoadingSpinner";
 
-const Index = React.lazy(() => import("@/pages/Index"));
+// Ensure proper casing for imports
+const Index = React.lazy(() => import("@/pages/index"));  // Changed from Index to index
 const Settings = React.lazy(() => import("@/pages/Settings"));
 
 export function MainRoutes() {
