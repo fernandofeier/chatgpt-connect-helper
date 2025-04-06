@@ -91,18 +91,21 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          claude_api_key: string | null
           created_at: string
           openai_api_key: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          claude_api_key?: string | null
           created_at?: string
           openai_api_key?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          claude_api_key?: string | null
           created_at?: string
           openai_api_key?: string | null
           updated_at?: string

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,12 +10,14 @@ import { ModelSelector, AIModel } from "@/components/chat/ModelSelector";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
+  claudeApiKey?: string | null;
   selectedModel?: AIModel;
   onModelChange?: (model: AIModel) => void;
 }
 
 export function ChatInterface({ 
   initialApiKey, 
+  claudeApiKey,
   selectedModel = "gpt-4o", 
   onModelChange 
 }: ChatInterfaceProps) {

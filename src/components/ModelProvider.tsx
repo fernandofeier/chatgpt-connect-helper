@@ -49,6 +49,7 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey }: ModelProviderProps
   return (
     <ChatInterface 
       initialApiKey={getApiKeyForModel()} 
+      claudeApiKey={claudeApiKey}
       selectedModel={selectedModel}
       onModelChange={handleModelChange}
     />

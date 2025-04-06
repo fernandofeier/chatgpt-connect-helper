@@ -3,11 +3,14 @@ import { useEffect, useState } from "react";
 import { ChatInterface } from "@/components/ChatInterface";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { ModelProvider } from "@/components/ModelProvider";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [claudeApiKey, setClaudeApiKey] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchApiKeys = async () => {
@@ -19,6 +22,16 @@ const Index = () => {
 
         if (error) {
           console.error("Error fetching API keys:", error);
+          
+          // Check if the error is specifically about the claude_api_key column
+          if (error.message && error.message.includes("claude_api_key")) {
+            toast({
+              title: "Database Update Required",
+              description: "Please refresh the page to use the updated database schema.",
+              variant: "destructive",
+            });
+          }
+          
           navigate("/settings");
           return;
         }
@@ -36,7 +49,7 @@ const Index = () => {
     };
 
     fetchApiKeys();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   if (!apiKey) {
     return null;
@@ -44,7 +57,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <ChatInterface initialApiKey={apiKey} claudeApiKey={claudeApiKey} />
+      <ModelProvider openaiApiKey={apiKey} claudeApiKey={claudeApiKey} />
     </div>
   );
 };

@@ -31,6 +31,16 @@ const Settings = () => {
         
         if (error) {
           console.error("Error fetching settings:", error);
+          
+          // Check if the error is specifically about the claude_api_key column
+          if (error.message && error.message.includes("claude_api_key")) {
+            toast({
+              title: "Database Update Required",
+              description: "Please refresh the page to use the updated database schema.",
+              variant: "destructive",
+            });
+          }
+          
           return;
         }
         
@@ -48,7 +58,7 @@ const Settings = () => {
     };
 
     checkSession();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleSave = async () => {
     setLoading(true);
