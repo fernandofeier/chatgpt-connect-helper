@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useChat } from "@/hooks/useChat";
-import { Message } from "@/types/chat";
 import { supabase } from "@/integrations/supabase/client";
 import { ModelSelector, AIModel } from "@/components/chat/ModelSelector";
+import { MessageList } from "@/components/chat/MessageList";
+import { MessageInput } from "@/components/chat/MessageInput";
+import { Message } from "@/types/chat";
+import { FileUpload } from "@/components/chat/FileUpload";
 
 interface ChatInterfaceProps {
   initialApiKey: string;
@@ -24,6 +25,7 @@ export function ChatInterface({
   const [input, setInput] = useState("");
   const [model, setModel] = useState<AIModel>(selectedModel);
   const { id: conversationId } = useParams<{ id: string }>();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   // Use the appropriate API key based on selected model
   const apiKeyToUse = model.startsWith("claude") && claudeApiKey ? claudeApiKey : initialApiKey;
@@ -51,23 +53,13 @@ export function ChatInterface({
     }
   }, [conversationId, setMessages]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-  };
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if ((!input.trim() && !selectedFile)) return;
 
-    await handleSubmit(input, conversationId || null);
+    await handleSubmit(input, conversationId || null, selectedFile);
     setInput("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleFormSubmit(e as unknown as React.FormEvent);
-    }
+    setSelectedFile(null);
   };
 
   const handleModelChange = (newModel: AIModel) => {
@@ -77,6 +69,10 @@ export function ChatInterface({
     }
   };
 
+  const handleFileSelected = (file: File | null) => {
+    setSelectedFile(file);
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
       <div className="flex justify-between items-center mb-4">
@@ -84,54 +80,23 @@ export function ChatInterface({
         <ModelSelector model={model} onModelChange={handleModelChange} />
       </div>
       
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4 p-4 rounded-lg border">
-        {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
-            <p>No messages yet. Start a conversation!</p>
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${
-                message.role === "user"
-                  ? "bg-blue-100 ml-12"
-                  : "bg-gray-100 mr-12"
-              }`}
-            >
-              <div className="font-semibold mb-1">
-                {message.role === "user" ? "You" : "AI"}
-              </div>
-              <div className="whitespace-pre-wrap">{message.content}</div>
-            </div>
-          ))
-        )}
-        {isLoading && (
-          <div className="p-4 rounded-lg bg-gray-100 mr-12">
-            <div className="font-semibold mb-1">AI</div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></div>
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-300"></div>
-            </div>
-          </div>
-        )}
-      </div>
+      <MessageList 
+        messages={messages} 
+        isLoading={isLoading} 
+      />
 
-      <form onSubmit={handleFormSubmit} className="flex gap-2">
-        <Textarea
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Type your message..."
-          className="flex-1 resize-none"
-          rows={3}
-          disabled={isLoading}
+      <div className="mt-4 flex flex-col gap-2">
+        <FileUpload 
+          selectedFile={selectedFile} 
+          onFileSelected={handleFileSelected} 
         />
-        <Button type="submit" disabled={isLoading || !input.trim()}>
-          Send
-        </Button>
-      </form>
+        <MessageInput 
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          onSubmit={handleFormSubmit}
+        />
+      </div>
     </div>
   );
 }
