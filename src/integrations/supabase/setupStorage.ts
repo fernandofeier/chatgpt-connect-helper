@@ -3,20 +3,25 @@ import { supabase } from "./client";
 
 export const setupChatImagesBucket = async () => {
   try {
-    // Check if the bucket already exists
-    const { data: buckets } = await supabase.storage.listBuckets();
-    const bucketExists = buckets?.some(bucket => bucket.name === 'chat_images');
+    // Check if chat_images bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
-    if (!bucketExists) {
-      // Create the bucket if it doesn't exist
-      const { error } = await supabase.storage.createBucket('chat_images', {
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return;
+    }
+    
+    const chatImagesBucket = buckets?.find(bucket => bucket.name === 'chat_images');
+    
+    // If bucket doesn't exist, create it
+    if (!chatImagesBucket) {
+      const { error: createError } = await supabase.storage.createBucket('chat_images', {
         public: true,
-        fileSizeLimit: 10485760, // 10MB
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        fileSizeLimit: 5242880, // 5MB limit
       });
       
-      if (error) {
-        console.error('Error creating chat_images bucket:', error);
+      if (createError) {
+        console.error('Error creating chat_images bucket:', createError);
         return;
       }
       
@@ -25,14 +30,8 @@ export const setupChatImagesBucket = async () => {
       // Set public policy on the bucket through RPC instead of direct createPolicy
       // This is a workaround since createPolicy method doesn't exist
       try {
-        // We'll make a direct query to set bucket to public
-        const { error: policyError } = await supabase.rpc('set_bucket_public', { 
-          bucket_name: 'chat_images'
-        });
-        
-        if (policyError) {
-          console.error('Error setting bucket to public:', policyError);
-        }
+        // We'll use console log instead of trying to call a non-existent method
+        console.log('Note: You may need to set bucket policy manually in the Supabase dashboard');
       } catch (policyError) {
         console.error('Error setting bucket to public:', policyError);
         console.log('Continuing without setting bucket policy. You may need to set it manually in the Supabase dashboard.');
