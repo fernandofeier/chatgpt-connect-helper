@@ -14,3 +14,21 @@ export interface MessagePayload {
 }
 
 export type ApiProvider = "openai" | "claude";
+
+export interface ModelSetting {
+  id: string;
+  model_id: string;
+  model_name: string;
+  provider: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string | null;
+  role: 'admin' | 'user';
+  created_at: string;
+  updated_at: string;
+}

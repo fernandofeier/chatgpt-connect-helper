@@ -190,6 +190,36 @@ export type Database = {
           },
         ]
       }
+      model_settings: {
+        Row: {
+          created_at: string | null
+          enabled: boolean
+          id: string
+          model_id: string
+          model_name: string
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          model_id: string
+          model_name: string
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          model_id?: string
+          model_name?: string
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       modules: {
         Row: {
           course_id: string
@@ -230,18 +260,21 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
           created_at?: string
           email?: string | null
           id: string
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
           created_at?: string
           email?: string | null
           id?: string
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Relationships: []
@@ -384,7 +417,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -499,6 +532,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "user"],
+    },
   },
 } as const

@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -6,17 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useModels } from "@/hooks/useModels";
 
-export type AIModel = 
-  // OpenAI models
-  | "gpt-3.5-turbo" 
-  | "gpt-4o" 
-  | "gpt-4o-mini" 
-  | "gpt-4" 
-  | "gpt-o1-mini"
-  // Claude models 
-  | "claude-3-5-sonnet-20240620" 
-  | "claude-3-sonnet-20240229";
+export type AIModel = string;
 
 interface ModelSelectorProps {
   model: AIModel;
@@ -24,19 +17,53 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector({ model, onModelChange }: ModelSelectorProps) {
+  const { models } = useModels();
+  const [enabledModels, setEnabledModels] = useState<typeof models>([]);
+
+  useEffect(() => {
+    const enabled = models.filter(m => m.enabled);
+    setEnabledModels(enabled);
+    
+    // Se o modelo atual não está mais habilitado, seleciona o primeiro disponível
+    if (enabled.length > 0 && !enabled.find(m => m.model_id === model)) {
+      onModelChange(enabled[0].model_id);
+    }
+  }, [models, model, onModelChange]);
+
+  const groupedModels = enabledModels.reduce((acc, modelItem) => {
+    if (!acc[modelItem.provider]) {
+      acc[modelItem.provider] = [];
+    }
+    acc[modelItem.provider].push(modelItem);
+    return acc;
+  }, {} as Record<string, typeof enabledModels>);
+
+  if (enabledModels.length === 0) {
+    return (
+      <div className="text-sm text-gray-500">
+        Nenhum modelo disponível
+      </div>
+    );
+  }
+
   return (
-    <Select value={model} onValueChange={(value) => onModelChange(value as AIModel)}>
+    <Select value={model} onValueChange={onModelChange}>
       <SelectTrigger className="w-[200px]">
-        <SelectValue placeholder="Select a model" />
+        <SelectValue placeholder="Selecione um modelo" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="gpt-4o-mini">GPT-4o-mini</SelectItem>
-        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-        <SelectItem value="gpt-4">GPT-4</SelectItem>
-        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-        <SelectItem value="gpt-o1-mini">GPT-o1-mini</SelectItem>
-        <SelectItem value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</SelectItem>
-        <SelectItem value="claude-3-sonnet-20240229">Claude 3 Sonnet</SelectItem>
+        {Object.entries(groupedModels).map(([provider, providerModels]) => (
+          <div key={provider}>
+            <div className="px-2 py-1 text-xs font-semibold text-gray-500 uppercase">
+              {provider}
+            </div>
+            {providerModels.map((modelItem) => (
+              <SelectItem key={modelItem.model_id} value={modelItem.model_id}>
+                {modelItem.model_name}
+              </SelectItem>
+            ))}
+          </div>
+        ))}
       </SelectContent>
     </Select>
   );

@@ -1,20 +1,28 @@
 
 import { useEffect, useState } from "react";
-import { ChatInterface } from "@/components/ChatInterface";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ModelProvider } from "@/components/ModelProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const Index = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [claudeApiKey, setClaudeApiKey] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     const fetchApiKeys = async () => {
       try {
+        // Usuários não-admin não precisam de chaves API
+        if (!roleLoading && !isAdmin) {
+          setApiKey("dummy-key"); // Chave fictícia para usuários normais
+          setClaudeApiKey(null);
+          return;
+        }
+
         const { data: settings, error } = await supabase
           .from("user_settings")
           .select("openai_api_key, claude_api_key")
@@ -23,36 +31,55 @@ const Index = () => {
         if (error) {
           console.error("Error fetching API keys:", error);
           
-          // Check if the error is specifically about the claude_api_key column
           if (error.message && error.message.includes("claude_api_key")) {
             toast({
-              title: "Database Update Required",
-              description: "Please refresh the page to use the updated database schema.",
+              title: "Atualização de Banco Necessária",
+              description: "Por favor, atualize a página para usar o esquema atualizado do banco.",
               variant: "destructive",
             });
           }
           
-          navigate("/settings");
+          // Se é admin e não tem configurações, redireciona para configurações
+          if (isAdmin) {
+            navigate("/settings");
+          } else {
+            // Para usuários normais, usar chave fictícia
+            setApiKey("dummy-key");
+            setClaudeApiKey(null);
+          }
           return;
         }
 
-        if (!settings?.openai_api_key) {
+        if (isAdmin && !settings?.openai_api_key) {
           navigate("/settings");
         } else {
-          setApiKey(settings.openai_api_key);
-          setClaudeApiKey(settings.claude_api_key || null);
+          setApiKey(settings?.openai_api_key || "dummy-key");
+          setClaudeApiKey(settings?.claude_api_key || null);
         }
       } catch (error) {
         console.error("Error in fetchApiKeys:", error);
-        navigate("/settings");
+        if (isAdmin) {
+          navigate("/settings");
+        } else {
+          setApiKey("dummy-key");
+          setClaudeApiKey(null);
+        }
       }
     };
 
-    fetchApiKeys();
-  }, [navigate, toast]);
+    if (!roleLoading) {
+      fetchApiKeys();
+    }
+  }, [navigate, toast, isAdmin, roleLoading]);
 
-  if (!apiKey) {
-    return null;
+  if (roleLoading || !apiKey) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <div className="text-gray-500">Carregando...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
