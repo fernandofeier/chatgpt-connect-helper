@@ -42,6 +42,7 @@ export function ChatInterface({
           const formattedMessages: Message[] = data.map((msg) => ({
             role: msg.role as "user" | "assistant",
             content: msg.content,
+            image_url: msg.image_url || undefined,
           }));
           setMessages(formattedMessages);
         }
@@ -102,6 +103,15 @@ export function ChatInterface({
               <div className="font-semibold mb-1">
                 {message.role === "user" ? "You" : "AI"}
               </div>
+              {message.image_url && (
+                <div className="mb-2">
+                  <img 
+                    src={message.image_url} 
+                    alt="Uploaded content" 
+                    className="max-w-xs rounded-lg"
+                  />
+                </div>
+              )}
               <div className="whitespace-pre-wrap">{message.content}</div>
             </div>
           ))
