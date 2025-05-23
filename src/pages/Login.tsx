@@ -1,37 +1,62 @@
+
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/");
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          if (session) {
+            navigate("/", { replace: true });
+          } else {
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
     
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event) => {
-        if (event === 'SIGNED_IN') {
-          navigate("/");
-        }
-        if (event === 'SIGNED_OUT') {
-          navigate("/login");
+      (event, session) => {
+        if (mounted) {
+          if (event === 'SIGNED_IN' && session) {
+            navigate("/", { replace: true });
+          } else if (event === 'SIGNED_OUT') {
+            setLoading(false);
+          }
         }
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
+        <div className="text-gray-500">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">

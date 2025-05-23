@@ -9,14 +9,18 @@ export function useUserRole() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchUserRole = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          setUserRole(null);
-          setProfile(null);
-          setLoading(false);
+          if (mounted) {
+            setUserRole(null);
+            setProfile(null);
+            setLoading(false);
+          }
           return;
         }
 
@@ -24,30 +28,54 @@ export function useUserRole() {
           .from("profiles")
           .select("*")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.error("Error fetching user profile:", error);
-          setUserRole('user'); // Default to user if error
-        } else {
-          setUserRole(profile?.role || 'user');
-          setProfile(profile);
+        if (mounted) {
+          if (error) {
+            console.error("Error fetching user profile:", error);
+            setUserRole('user'); // Default to user if error
+            setProfile(null);
+          } else if (profile) {
+            setUserRole(profile.role || 'user');
+            setProfile(profile);
+          } else {
+            // Profile doesn't exist yet, default to user
+            setUserRole('user');
+            setProfile(null);
+          }
+          setLoading(false);
         }
       } catch (error) {
         console.error("Error in fetchUserRole:", error);
-        setUserRole('user');
-      } finally {
-        setLoading(false);
+        if (mounted) {
+          setUserRole('user');
+          setProfile(null);
+          setLoading(false);
+        }
       }
     };
 
     fetchUserRole();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchUserRole();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Defer profile fetching to avoid deadlocks
+        setTimeout(() => {
+          fetchUserRole();
+        }, 100);
+      } else if (event === 'SIGNED_OUT') {
+        if (mounted) {
+          setUserRole(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return {
