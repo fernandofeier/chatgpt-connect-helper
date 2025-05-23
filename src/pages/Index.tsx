@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { ModelProvider } from "@/components/ModelProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -10,7 +9,6 @@ const Index = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [claudeApiKey, setClaudeApiKey] = useState<string | null>(null);
   const [loadingKeys, setLoadingKeys] = useState(true);
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { isAdmin, loading: roleLoading } = useUserRole();
 
@@ -41,14 +39,6 @@ const Index = () => {
         if (mounted) {
           if (error) {
             console.error("Error fetching API keys:", error);
-            
-            if (error.message && error.message.includes("claude_api_key")) {
-              toast({
-                title: "Aviso",
-                description: "Algumas funcionalidades podem estar limitadas. Configure as chaves API.",
-                variant: "default",
-              });
-            }
             
             // Para admins sem configurações, usar chaves fictícias mas sugerir configuração
             setApiKey("dummy-key");
@@ -84,7 +74,7 @@ const Index = () => {
     return () => {
       mounted = false;
     };
-  }, [navigate, toast, isAdmin, roleLoading]);
+  }, [toast, isAdmin, roleLoading]);
 
   if (roleLoading || loadingKeys) {
     return (
