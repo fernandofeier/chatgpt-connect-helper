@@ -22,16 +22,17 @@ const Index = () => {
         // Aguardar o carregamento do role
         if (roleLoading) return;
 
-        // Usuários não-admin não precisam de chaves API
+        // Usuários não-admin recebem chaves fictícias
         if (!isAdmin) {
           if (mounted) {
-            setApiKey("dummy-key"); // Chave fictícia para usuários normais
-            setClaudeApiKey(null);
+            setApiKey("dummy-key");
+            setClaudeApiKey("dummy-key");
             setLoadingKeys(false);
           }
           return;
         }
 
+        // Para admins, buscar as chaves reais
         const { data: settings, error } = await supabase
           .from("user_settings")
           .select("openai_api_key, claude_api_key")
@@ -43,34 +44,36 @@ const Index = () => {
             
             if (error.message && error.message.includes("claude_api_key")) {
               toast({
-                title: "Atualização de Banco Necessária",
-                description: "Por favor, atualize a página para usar o esquema atualizado do banco.",
-                variant: "destructive",
+                title: "Aviso",
+                description: "Algumas funcionalidades podem estar limitadas. Configure as chaves API.",
+                variant: "default",
               });
             }
             
-            // Se é admin e não tem configurações, redireciona para configurações
-            navigate("/settings");
-            return;
-          }
-
-          if (!settings?.openai_api_key) {
-            navigate("/settings");
-          } else {
+            // Para admins sem configurações, usar chaves fictícias mas sugerir configuração
+            setApiKey("dummy-key");
+            setClaudeApiKey("dummy-key");
+          } else if (settings) {
             setApiKey(settings.openai_api_key || "dummy-key");
-            setClaudeApiKey(settings.claude_api_key || null);
+            setClaudeApiKey(settings.claude_api_key || "dummy-key");
+          } else {
+            // Admin sem configurações ainda
+            setApiKey("dummy-key");
+            setClaudeApiKey("dummy-key");
+            
+            toast({
+              title: "Configuração Necessária",
+              description: "Configure suas chaves API nas configurações para usar todos os recursos.",
+            });
           }
           setLoadingKeys(false);
         }
       } catch (error) {
         console.error("Error in fetchApiKeys:", error);
         if (mounted) {
-          if (isAdmin) {
-            navigate("/settings");
-          } else {
-            setApiKey("dummy-key");
-            setClaudeApiKey(null);
-          }
+          // Em caso de erro, permitir o uso com chaves fictícias
+          setApiKey("dummy-key");
+          setClaudeApiKey("dummy-key");
           setLoadingKeys(false);
         }
       }
@@ -88,16 +91,6 @@ const Index = () => {
       <div className="container mx-auto py-8">
         <div className="flex items-center justify-center">
           <div className="text-gray-500">Carregando...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!apiKey) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center">
-          <div className="text-gray-500">Configurando...</div>
         </div>
       </div>
     );

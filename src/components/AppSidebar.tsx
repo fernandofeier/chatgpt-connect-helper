@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { Settings, MessageSquare, Plus, LogOut, Trash2, Home } from "lucide-react";
@@ -90,8 +91,14 @@ export function AppSidebar() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/login");
+    try {
+      await supabase.auth.signOut();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Forçar logout mesmo com erro
+      window.location.href = "/login";
+    }
   };
 
   const handleDeleteConversation = async (id: string) => {

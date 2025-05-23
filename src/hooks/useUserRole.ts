@@ -24,6 +24,7 @@ export function useUserRole() {
           return;
         }
 
+        // Buscar perfil do usuário
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("*")
@@ -33,13 +34,14 @@ export function useUserRole() {
         if (mounted) {
           if (error) {
             console.error("Error fetching user profile:", error);
-            setUserRole('user'); // Default to user if error
+            // Em caso de erro, assumir usuário comum mas não desconectar
+            setUserRole('user');
             setProfile(null);
           } else if (profile) {
             setUserRole(profile.role || 'user');
             setProfile(profile);
           } else {
-            // Profile doesn't exist yet, default to user
+            // Perfil não existe ainda, criar um padrão
             setUserRole('user');
             setProfile(null);
           }
@@ -48,6 +50,7 @@ export function useUserRole() {
       } catch (error) {
         console.error("Error in fetchUserRole:", error);
         if (mounted) {
+          // Em caso de erro, assumir usuário comum
           setUserRole('user');
           setProfile(null);
           setLoading(false);
@@ -59,10 +62,10 @@ export function useUserRole() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // Defer profile fetching to avoid deadlocks
+        // Aguardar um pouco para evitar conflitos
         setTimeout(() => {
           fetchUserRole();
-        }, 100);
+        }, 500);
       } else if (event === 'SIGNED_OUT') {
         if (mounted) {
           setUserRole(null);
