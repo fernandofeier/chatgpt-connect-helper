@@ -108,9 +108,10 @@ export function useChat(initialApiKey: string, model: AIModel) {
           "x-api-key": initialApiKey
         };
       } else if (usingGeminiAPI) {
-        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${initialApiKey}`;
+        // Corrigido: usar o endpoint correto para streaming do Gemini
+        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${initialApiKey}`;
         headers = {
-          ...headers,
+          "Content-Type": "application/json",
         };
       } else {
         endpoint = "https://api.openai.com/v1/chat/completions";
@@ -134,14 +135,27 @@ export function useChat(initialApiKey: string, model: AIModel) {
           max_tokens: 4096
         };
       } else if (usingGeminiAPI) {
-        // Format request body for Gemini API
-        const formattedMessages = [...messages, userMessage].map(msg => ({
-          role: msg.role === "user" ? "user" : "model",
-          parts: [{ text: msg.content }]
-        }));
+        // Format request body for Gemini API corrigido conforme documentação
+        const formattedMessages = [...messages, userMessage];
         
+        // Converter mensagens para o formato correto do Gemini
+        const contents = [];
+        for (const msg of formattedMessages) {
+          if (msg.role === "user") {
+            contents.push({
+              role: "user",
+              parts: [{ text: msg.content }]
+            });
+          } else if (msg.role === "assistant") {
+            contents.push({
+              role: "model", 
+              parts: [{ text: msg.content }]
+            });
+          }
+        }
+
         requestBody = {
-          contents: formattedMessages,
+          contents: contents,
           generationConfig: {
             temperature: 0.7,
             maxOutputTokens: 4096,
@@ -158,6 +172,8 @@ export function useChat(initialApiKey: string, model: AIModel) {
           stream: true,
         };
       }
+
+      console.log(`Fazendo requisição para ${provider}:`, { endpoint, requestBody });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -190,12 +206,15 @@ export function useChat(initialApiKey: string, model: AIModel) {
           
           for (const line of lines) {
             if (usingGeminiAPI) {
-              // Handle Gemini streaming format
-              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+              // Handle Gemini streaming format corrigido
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') break;
+                
                 try {
-                  const data = JSON.parse(line.slice(6));
-                  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
-                    const content = data.candidates[0].content.parts[0].text;
+                  const parsed = JSON.parse(data);
+                  if (parsed.candidates && parsed.candidates[0]?.content?.parts?.[0]?.text) {
+                    const content = parsed.candidates[0].content.parts[0].text;
                     assistantMessage.content += content;
                     setMessages(prev => 
                       prev.map((msg, i) => 
@@ -204,7 +223,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
                     );
                   }
                 } catch (e) {
-                  console.error('Error parsing Gemini chunk:', e);
+                  console.error('Error parsing Gemini chunk:', e, 'Line:', line);
                 }
               }
             } else if (line.startsWith('data: ') && line !== 'data: [DONE]') {
