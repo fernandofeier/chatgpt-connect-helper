@@ -389,6 +389,7 @@ export type Database = {
         Row: {
           claude_api_key: string | null
           created_at: string
+          gemini_api_key: string | null
           openai_api_key: string | null
           updated_at: string
           user_id: string
@@ -396,6 +397,7 @@ export type Database = {
         Insert: {
           claude_api_key?: string | null
           created_at?: string
+          gemini_api_key?: string | null
           openai_api_key?: string | null
           updated_at?: string
           user_id: string
@@ -403,6 +405,7 @@ export type Database = {
         Update: {
           claude_api_key?: string | null
           created_at?: string
+          gemini_api_key?: string | null
           openai_api_key?: string | null
           updated_at?: string
           user_id?: string

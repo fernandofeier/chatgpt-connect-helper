@@ -18,10 +18,8 @@ const Index = () => {
 
     const fetchApiKeys = async () => {
       try {
-        // Aguardar o carregamento do role
         if (roleLoading) return;
 
-        // Usuários não-admin recebem chaves fictícias
         if (!isAdmin) {
           if (mounted) {
             setApiKey("dummy-key");
@@ -32,41 +30,64 @@ const Index = () => {
           return;
         }
 
-        // Para admins, buscar as chaves reais
-        const { data: settings, error } = await supabase
-          .from("user_settings")
-          .select("openai_api_key, claude_api_key, gemini_api_key")
-          .maybeSingle();
+        // Tentar buscar as chaves - se a coluna gemini_api_key não existir, vai dar erro
+        try {
+          const { data: settings, error } = await supabase
+            .from("user_settings")
+            .select("openai_api_key, claude_api_key, gemini_api_key")
+            .maybeSingle();
 
-        if (mounted) {
-          if (error) {
-            console.error("Error fetching API keys:", error);
-            
-            // Para admins sem configurações, usar chaves fictícias mas sugerir configuração
-            setApiKey("dummy-key");
-            setClaudeApiKey("dummy-key");
-            setGeminiApiKey("dummy-key");
-          } else if (settings) {
-            setApiKey(settings.openai_api_key || "dummy-key");
-            setClaudeApiKey(settings.claude_api_key || "dummy-key");
-            setGeminiApiKey(settings.gemini_api_key || "dummy-key");
-          } else {
-            // Admin sem configurações ainda
-            setApiKey("dummy-key");
-            setClaudeApiKey("dummy-key");
-            setGeminiApiKey("dummy-key");
-            
-            toast({
-              title: "Configuração Necessária",
-              description: "Configure suas chaves API nas configurações para usar todos os recursos.",
-            });
+          if (mounted) {
+            if (error) {
+              console.error("Error fetching API keys:", error);
+              setApiKey("dummy-key");
+              setClaudeApiKey("dummy-key");
+              setGeminiApiKey("dummy-key");
+            } else if (settings) {
+              setApiKey(settings.openai_api_key || "dummy-key");
+              setClaudeApiKey(settings.claude_api_key || "dummy-key");
+              setGeminiApiKey(settings.gemini_api_key || "dummy-key");
+            } else {
+              setApiKey("dummy-key");
+              setClaudeApiKey("dummy-key");
+              setGeminiApiKey("dummy-key");
+              
+              toast({
+                title: "Configuração Necessária",
+                description: "Configure suas chaves API nas configurações para usar todos os recursos.",
+              });
+            }
+            setLoadingKeys(false);
           }
-          setLoadingKeys(false);
+        } catch (dbError) {
+          // Se houver erro ao acessar a coluna gemini_api_key, buscar apenas as colunas existentes
+          console.error("Database error, trying fallback:", dbError);
+          const { data: settings, error } = await supabase
+            .from("user_settings")
+            .select("openai_api_key, claude_api_key")
+            .maybeSingle();
+
+          if (mounted) {
+            if (error) {
+              console.error("Error fetching API keys:", error);
+              setApiKey("dummy-key");
+              setClaudeApiKey("dummy-key");
+              setGeminiApiKey("dummy-key");
+            } else if (settings) {
+              setApiKey(settings.openai_api_key || "dummy-key");
+              setClaudeApiKey(settings.claude_api_key || "dummy-key");
+              setGeminiApiKey("dummy-key");
+            } else {
+              setApiKey("dummy-key");
+              setClaudeApiKey("dummy-key");
+              setGeminiApiKey("dummy-key");
+            }
+            setLoadingKeys(false);
+          }
         }
       } catch (error) {
         console.error("Error in fetchApiKeys:", error);
         if (mounted) {
-          // Em caso de erro, permitir o uso com chaves fictícias
           setApiKey("dummy-key");
           setClaudeApiKey("dummy-key");
           setGeminiApiKey("dummy-key");

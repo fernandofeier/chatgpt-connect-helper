@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ChatInterface } from "@/components/ChatInterface";
 import { useToast } from "@/hooks/use-toast";
@@ -16,19 +17,24 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
   const { toast } = useToast();
   const { models } = useModels();
   
-  // Buscar chave API do Gemini quando necessário
   useEffect(() => {
     if (!initialGeminiApiKey) {
       const fetchGeminiKey = async () => {
         try {
-          const { data: settings, error } = await supabase
-            .from("user_settings")
-            .select("gemini_api_key")
-            .maybeSingle();
+          // Tentar buscar com a nova coluna, se falhar, usar fallback
+          try {
+            const { data: settings, error } = await supabase
+              .from("user_settings")
+              .select("gemini_api_key")
+              .maybeSingle();
 
-          if (!error && settings) {
-            setGeminiApiKey(settings.gemini_api_key || "dummy-key");
-          } else {
+            if (!error && settings && settings.gemini_api_key) {
+              setGeminiApiKey(settings.gemini_api_key);
+            } else {
+              setGeminiApiKey("dummy-key");
+            }
+          } catch (dbError) {
+            console.error("Error fetching Gemini API key:", dbError);
             setGeminiApiKey("dummy-key");
           }
         } catch (error) {
@@ -43,7 +49,6 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
     }
   }, [initialGeminiApiKey]);
   
-  // Definir modelo padrão quando os modelos carregarem
   useEffect(() => {
     const enabledModels = models.filter(m => m.enabled);
     if (enabledModels.length > 0 && !selectedModel) {
@@ -63,7 +68,6 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
       return;
     }
     
-    // Verificar se mudou para Claude sem chave API do Claude
     if (modelSetting.provider === "claude" && !claudeApiKey) {
       toast({
         title: "Chave API Claude Não Encontrada",
@@ -73,7 +77,6 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
       return;
     }
     
-    // Verificar se mudou para Gemini sem chave API do Gemini
     if (modelSetting.provider === "gemini" && !geminiApiKey) {
       toast({
         title: "Chave API Gemini Não Encontrada",

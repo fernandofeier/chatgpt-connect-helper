@@ -33,12 +33,10 @@ const Settings = () => {
           return;
         }
 
-        // Carregar email do usuário
         if (session.user?.email) {
           setEmail(session.user.email);
         }
         
-        // Se for admin, carregar as chaves API
         if (isAdmin) {
           const { data: settings, error } = await supabase
             .from("user_settings")
@@ -348,52 +346,6 @@ const Settings = () => {
       </Tabs>
     </div>
   );
-
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A senha deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setPasswordLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) throw error;
-
-      setNewPassword("");
-      setConfirmPassword("");
-      
-      toast({
-        title: "Sucesso",
-        description: "Senha alterada com sucesso.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao alterar senha. Tente novamente.",
-        variant: "destructive",
-      });
-      console.error("Error changing password:", error);
-    } finally {
-      setPasswordLoading(false);
-    }
-  };
 };
 
 export default Settings;
