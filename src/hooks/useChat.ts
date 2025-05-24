@@ -5,16 +5,20 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Message, ApiProvider } from "@/types/chat";
 import { AIModel } from "@/components/chat/ModelSelector";
+import { useModels } from "@/hooks/useModels";
 
 export function useChat(initialApiKey: string, model: AIModel) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { models } = useModels();
   
-  // Determine which API provider to use based on model name
-  const isClaudeModel = (modelName: string) => modelName.startsWith('claude');
-  const isGeminiModel = (modelName: string) => modelName.startsWith('gemini');
+  // Determine which API provider to use based on model provider from database
+  const getModelProvider = (modelName: string) => {
+    const modelSetting = models.find(m => m.model_id === modelName);
+    return modelSetting?.provider || "openai";
+  };
 
   const createNewConversation = async (title: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -86,9 +90,10 @@ export function useChat(initialApiKey: string, model: AIModel) {
     await saveMessage(userMessage, currentConversationId);
 
     try {
-      // Determine which API to use based on the selected model
-      const usingClaudeAPI = isClaudeModel(model);
-      const usingGeminiAPI = isGeminiModel(model);
+      // Determine which API to use based on the selected model's provider
+      const provider = getModelProvider(model);
+      const usingClaudeAPI = provider === "claude";
+      const usingGeminiAPI = provider === "gemini";
       
       let endpoint = "";
       let headers: Record<string, string> = {

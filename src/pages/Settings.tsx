@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 const Settings = () => {
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [claudeApiKey, setClaudeApiKey] = useState("");
+  const [geminiApiKey, setGeminiApiKey] = useState("");
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,7 +42,7 @@ const Settings = () => {
         if (isAdmin) {
           const { data: settings, error } = await supabase
             .from("user_settings")
-            .select("openai_api_key, claude_api_key")
+            .select("openai_api_key, claude_api_key, gemini_api_key")
             .maybeSingle();
           
           if (error) {
@@ -52,6 +53,9 @@ const Settings = () => {
             }
             if (settings.claude_api_key) {
               setClaudeApiKey(settings.claude_api_key);
+            }
+            if (settings.gemini_api_key) {
+              setGeminiApiKey(settings.gemini_api_key);
             }
           }
         }
@@ -96,7 +100,8 @@ const Settings = () => {
           .from("user_settings")
           .update({ 
             openai_api_key: openaiApiKey,
-            claude_api_key: claudeApiKey 
+            claude_api_key: claudeApiKey,
+            gemini_api_key: geminiApiKey
           })
           .eq("user_id", userId));
       } else {
@@ -105,7 +110,8 @@ const Settings = () => {
           .insert({ 
             user_id: userId,
             openai_api_key: openaiApiKey,
-            claude_api_key: claudeApiKey 
+            claude_api_key: claudeApiKey,
+            gemini_api_key: geminiApiKey
           }));
       }
 
@@ -276,6 +282,7 @@ const Settings = () => {
                   <TabsList className="mb-4">
                     <TabsTrigger value="openai">OpenAI</TabsTrigger>
                     <TabsTrigger value="claude">Claude</TabsTrigger>
+                    <TabsTrigger value="gemini">Gemini</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="openai" className="space-y-4">
@@ -309,6 +316,22 @@ const Settings = () => {
                       />
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="gemini" className="space-y-4">
+                    <div className="space-y-2">
+                      <label htmlFor="geminiApiKey" className="text-sm font-medium text-[#3B3B3B]">
+                        Chave API Gemini
+                      </label>
+                      <Input
+                        id="geminiApiKey"
+                        type="password"
+                        value={geminiApiKey}
+                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                        placeholder="AIza..."
+                        className="font-inter"
+                      />
+                    </div>
+                  </TabsContent>
                 </Tabs>
                 
                 <Button
@@ -325,6 +348,52 @@ const Settings = () => {
       </Tabs>
     </div>
   );
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+
+      setNewPassword("");
+      setConfirmPassword("");
+      
+      toast({
+        title: "Sucesso",
+        description: "Senha alterada com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao alterar senha. Tente novamente.",
+        variant: "destructive",
+      });
+      console.error("Error changing password:", error);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 };
 
 export default Settings;

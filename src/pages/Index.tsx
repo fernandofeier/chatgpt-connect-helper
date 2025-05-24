@@ -94,7 +94,11 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <ModelProvider openaiApiKey={apiKey} claudeApiKey={claudeApiKey} />
+      <ModelProvider 
+        openaiApiKey={apiKey} 
+        claudeApiKey={claudeApiKey} 
+        geminiApiKey={geminiApiKey}
+      />
     </div>
   );
 };
