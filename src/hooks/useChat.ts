@@ -108,8 +108,8 @@ export function useChat(initialApiKey: string, model: AIModel) {
           "x-api-key": initialApiKey
         };
       } else if (usingGeminiAPI) {
-        // Corrigido: usar o endpoint correto para streaming do Gemini
-        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${initialApiKey}`;
+        // Usar o endpoint correto para o Gemini conforme documentação
+        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${initialApiKey}`;
         headers = {
           "Content-Type": "application/json",
         };
@@ -135,24 +135,14 @@ export function useChat(initialApiKey: string, model: AIModel) {
           max_tokens: 4096
         };
       } else if (usingGeminiAPI) {
-        // Format request body for Gemini API corrigido conforme documentação
-        const formattedMessages = [...messages, userMessage];
+        // Format request body for Gemini API conforme documentação oficial
+        const allMessages = [...messages, userMessage];
         
-        // Converter mensagens para o formato correto do Gemini
-        const contents = [];
-        for (const msg of formattedMessages) {
-          if (msg.role === "user") {
-            contents.push({
-              role: "user",
-              parts: [{ text: msg.content }]
-            });
-          } else if (msg.role === "assistant") {
-            contents.push({
-              role: "model", 
-              parts: [{ text: msg.content }]
-            });
-          }
-        }
+        // Converter mensagens para o formato do Gemini
+        const contents = allMessages.map(msg => ({
+          role: msg.role === "assistant" ? "model" : "user",
+          parts: [{ text: msg.content }]
+        }));
 
         requestBody = {
           contents: contents,
@@ -173,7 +163,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
         };
       }
 
-      console.log(`Fazendo requisição para ${provider}:`, { endpoint, requestBody });
+      console.log(`Fazendo requisição para ${provider}:`, { endpoint, requestBody, apiKey: initialApiKey });
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -206,21 +196,27 @@ export function useChat(initialApiKey: string, model: AIModel) {
           
           for (const line of lines) {
             if (usingGeminiAPI) {
-              // Handle Gemini streaming format corrigido
+              // Handle Gemini streaming format conforme documentação
               if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') break;
+                const data = line.slice(6).trim();
+                if (data === '[DONE]' || data === '') continue;
                 
                 try {
                   const parsed = JSON.parse(data);
-                  if (parsed.candidates && parsed.candidates[0]?.content?.parts?.[0]?.text) {
-                    const content = parsed.candidates[0].content.parts[0].text;
-                    assistantMessage.content += content;
-                    setMessages(prev => 
-                      prev.map((msg, i) => 
-                        i === prev.length - 1 ? assistantMessage : msg
-                      )
-                    );
+                  // Verificar se há conteúdo na resposta
+                  if (parsed.candidates && parsed.candidates[0]) {
+                    const candidate = parsed.candidates[0];
+                    if (candidate.content && candidate.content.parts && candidate.content.parts[0]) {
+                      const content = candidate.content.parts[0].text;
+                      if (content) {
+                        assistantMessage.content += content;
+                        setMessages(prev => 
+                          prev.map((msg, i) => 
+                            i === prev.length - 1 ? assistantMessage : msg
+                          )
+                        );
+                      }
+                    }
                   }
                 } catch (e) {
                   console.error('Error parsing Gemini chunk:', e, 'Line:', line);

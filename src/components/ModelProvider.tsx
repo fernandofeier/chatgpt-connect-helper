@@ -18,35 +18,27 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
   const { models } = useModels();
   
   useEffect(() => {
-    if (!initialGeminiApiKey) {
-      const fetchGeminiKey = async () => {
-        try {
-          // Tentar buscar com a nova coluna, se falhar, usar fallback
-          try {
-            const { data: settings, error } = await supabase
-              .from("user_settings")
-              .select("gemini_api_key")
-              .maybeSingle();
+    const fetchGeminiKey = async () => {
+      if (initialGeminiApiKey && initialGeminiApiKey !== "dummy-key") {
+        setGeminiApiKey(initialGeminiApiKey);
+        return;
+      }
 
-            if (!error && settings && settings.gemini_api_key) {
-              setGeminiApiKey(settings.gemini_api_key);
-            } else {
-              setGeminiApiKey("dummy-key");
-            }
-          } catch (dbError) {
-            console.error("Error fetching Gemini API key:", dbError);
-            setGeminiApiKey("dummy-key");
-          }
-        } catch (error) {
-          console.error("Error fetching Gemini API key:", error);
-          setGeminiApiKey("dummy-key");
+      try {
+        const { data: settings, error } = await supabase
+          .from("user_settings")
+          .select("gemini_api_key")
+          .maybeSingle();
+
+        if (!error && settings && settings.gemini_api_key) {
+          setGeminiApiKey(settings.gemini_api_key);
         }
-      };
+      } catch (dbError) {
+        console.error("Error fetching Gemini API key:", dbError);
+      }
+    };
 
-      fetchGeminiKey();
-    } else {
-      setGeminiApiKey(initialGeminiApiKey);
-    }
+    fetchGeminiKey();
   }, [initialGeminiApiKey]);
   
   useEffect(() => {
@@ -68,19 +60,19 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
       return;
     }
     
-    if (modelSetting.provider === "claude" && !claudeApiKey) {
+    if (modelSetting.provider === "claude" && (!claudeApiKey || claudeApiKey === "dummy-key")) {
       toast({
         title: "Chave API Claude Não Encontrada",
-        description: "Entre em contato com o administrador para configurar a chave API do Claude.",
+        description: "Configure a chave API do Claude nas configurações.",
         variant: "destructive",
       });
       return;
     }
     
-    if (modelSetting.provider === "gemini" && !geminiApiKey) {
+    if (modelSetting.provider === "gemini" && (!geminiApiKey || geminiApiKey === "dummy-key")) {
       toast({
         title: "Chave API Gemini Não Encontrada",
-        description: "Entre em contato com o administrador para configurar a chave API do Gemini.",
+        description: "Configure a chave API do Gemini nas configurações.",
         variant: "destructive",
       });
       return;
@@ -95,9 +87,9 @@ export const ModelProvider = ({ openaiApiKey, claudeApiKey, geminiApiKey: initia
     
     switch (modelSetting.provider) {
       case "claude":
-        return claudeApiKey || "dummy-key";
+        return claudeApiKey && claudeApiKey !== "dummy-key" ? claudeApiKey : openaiApiKey;
       case "gemini":
-        return geminiApiKey || "dummy-key";
+        return geminiApiKey && geminiApiKey !== "dummy-key" ? geminiApiKey : openaiApiKey;
       default:
         return openaiApiKey;
     }
