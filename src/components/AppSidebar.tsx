@@ -42,7 +42,6 @@ export function AppSidebar() {
   const { toast } = useToast();
   const { id: currentConversationId } = useParams();
   const location = useLocation();
-  const showHomeButton = conversations.length === 0 && location.pathname !== "/";
   const isMobile = useIsMobile();
 
   const fetchConversations = async () => {
@@ -141,15 +140,15 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="text-foreground">Conversas Recentes</SidebarGroupLabel>
           <SidebarGroupContent>
-            {showHomeButton && (
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate("/")} className="w-full">
-                  <Home size={16} />
-                  <span className="text-foreground">Início</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
             <SidebarMenu>
+              {conversations.length === 0 && location.pathname !== "/" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton onClick={() => navigate("/")} className="w-full">
+                    <Home size={16} />
+                    <span className="text-foreground">Início</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {conversations.map((conversation) => (
                 <SidebarMenuItem key={conversation.id}>
                   <div className="flex items-center w-full group">

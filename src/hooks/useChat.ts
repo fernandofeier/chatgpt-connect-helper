@@ -14,6 +14,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
   
   // Determine which API provider to use based on model name
   const isClaudeModel = (modelName: string) => modelName.startsWith('claude');
+  const isGeminiModel = (modelName: string) => modelName.startsWith('gemini');
 
   const createNewConversation = async (title: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -87,22 +88,27 @@ export function useChat(initialApiKey: string, model: AIModel) {
     try {
       // Determine which API to use based on the selected model
       const usingClaudeAPI = isClaudeModel(model);
+      const usingGeminiAPI = isGeminiModel(model);
       
-      let endpoint = usingClaudeAPI
-        ? "https://api.anthropic.com/v1/messages"
-        : "https://api.openai.com/v1/chat/completions";
-      
+      let endpoint = "";
       let headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
       
       if (usingClaudeAPI) {
+        endpoint = "https://api.anthropic.com/v1/messages";
         headers = {
           ...headers,
           "anthropic-version": "2023-06-01",
           "x-api-key": initialApiKey
         };
+      } else if (usingGeminiAPI) {
+        endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${initialApiKey}`;
+        headers = {
+          ...headers,
+        };
       } else {
+        endpoint = "https://api.openai.com/v1/chat/completions";
         headers = {
           ...headers,
           "Authorization": `Bearer ${initialApiKey}`
@@ -121,6 +127,20 @@ export function useChat(initialApiKey: string, model: AIModel) {
           })),
           stream: true,
           max_tokens: 4096
+        };
+      } else if (usingGeminiAPI) {
+        // Format request body for Gemini API
+        const formattedMessages = [...messages, userMessage].map(msg => ({
+          role: msg.role === "user" ? "user" : "model",
+          parts: [{ text: msg.content }]
+        }));
+        
+        requestBody = {
+          contents: formattedMessages,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096,
+          }
         };
       } else {
         // Format request body for OpenAI API
@@ -141,7 +161,13 @@ export function useChat(initialApiKey: string, model: AIModel) {
       });
 
       if (!response.ok) {
-        throw new Error(usingClaudeAPI ? "Erro na chamada da API Claude" : "Erro na chamada da API OpenAI");
+        const errorText = await response.text();
+        console.error(`API Error (${response.status}):`, errorText);
+        throw new Error(
+          usingClaudeAPI ? "Erro na chamada da API Claude" : 
+          usingGeminiAPI ? "Erro na chamada da API Gemini" : 
+          "Erro na chamada da API OpenAI"
+        );
       }
 
       const reader = response.body?.getReader();
@@ -158,7 +184,25 @@ export function useChat(initialApiKey: string, model: AIModel) {
           const lines = chunk.split('\n');
           
           for (const line of lines) {
-            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            if (usingGeminiAPI) {
+              // Handle Gemini streaming format
+              if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+                    const content = data.candidates[0].content.parts[0].text;
+                    assistantMessage.content += content;
+                    setMessages(prev => 
+                      prev.map((msg, i) => 
+                        i === prev.length - 1 ? assistantMessage : msg
+                      )
+                    );
+                  }
+                } catch (e) {
+                  console.error('Error parsing Gemini chunk:', e);
+                }
+              }
+            } else if (line.startsWith('data: ') && line !== 'data: [DONE]') {
               try {
                 const data = JSON.parse(line.slice(6));
                 
@@ -192,6 +236,7 @@ export function useChat(initialApiKey: string, model: AIModel) {
 
       await saveMessage(assistantMessage, currentConversationId);
     } catch (error) {
+      console.error("Chat error:", error);
       toast({
         title: "Erro",
         description: "Falha ao processar sua mensagem. Verifique sua chave API.",

@@ -114,7 +114,7 @@ export function ModelManagement() {
                     id="model_name"
                     value={newModel.model_name}
                     onChange={(e) => setNewModel({ ...newModel, model_name: e.target.value })}
-                    placeholder="Ex: GPT-4.5 Preview"
+                    placeholder="Ex: Gemini 2.5 Flash Preview"
                   />
                 </div>
                 <div className="space-y-2">
@@ -123,7 +123,7 @@ export function ModelManagement() {
                     id="model_id"
                     value={newModel.model_id}
                     onChange={(e) => setNewModel({ ...newModel, model_id: e.target.value })}
-                    placeholder="Ex: gpt-4.5-preview"
+                    placeholder="Ex: gemini-2.5-flash-preview"
                   />
                 </div>
                 <div className="space-y-2">

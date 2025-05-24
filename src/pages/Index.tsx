@@ -8,6 +8,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 const Index = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [claudeApiKey, setClaudeApiKey] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState<string | null>(null);
   const [loadingKeys, setLoadingKeys] = useState(true);
   const { toast } = useToast();
   const { isAdmin, loading: roleLoading } = useUserRole();
@@ -25,6 +26,7 @@ const Index = () => {
           if (mounted) {
             setApiKey("dummy-key");
             setClaudeApiKey("dummy-key");
+            setGeminiApiKey("dummy-key");
             setLoadingKeys(false);
           }
           return;
@@ -33,7 +35,7 @@ const Index = () => {
         // Para admins, buscar as chaves reais
         const { data: settings, error } = await supabase
           .from("user_settings")
-          .select("openai_api_key, claude_api_key")
+          .select("openai_api_key, claude_api_key, gemini_api_key")
           .maybeSingle();
 
         if (mounted) {
@@ -43,13 +45,16 @@ const Index = () => {
             // Para admins sem configurações, usar chaves fictícias mas sugerir configuração
             setApiKey("dummy-key");
             setClaudeApiKey("dummy-key");
+            setGeminiApiKey("dummy-key");
           } else if (settings) {
             setApiKey(settings.openai_api_key || "dummy-key");
             setClaudeApiKey(settings.claude_api_key || "dummy-key");
+            setGeminiApiKey(settings.gemini_api_key || "dummy-key");
           } else {
             // Admin sem configurações ainda
             setApiKey("dummy-key");
             setClaudeApiKey("dummy-key");
+            setGeminiApiKey("dummy-key");
             
             toast({
               title: "Configuração Necessária",
@@ -64,6 +69,7 @@ const Index = () => {
           // Em caso de erro, permitir o uso com chaves fictícias
           setApiKey("dummy-key");
           setClaudeApiKey("dummy-key");
+          setGeminiApiKey("dummy-key");
           setLoadingKeys(false);
         }
       }
